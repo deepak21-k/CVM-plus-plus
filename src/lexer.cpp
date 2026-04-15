@@ -106,7 +106,22 @@ std::vector<Token> Lexer::tokenize() {
             case '}': tokens.push_back(createToken(TokenType::RBRACE, text)); break;
             case ';': tokens.push_back(createToken(TokenType::SEMICOLON, text)); break;
             case '^': tokens.push_back(createToken(TokenType::BIT_XOR, text)); break;
-            case '&': tokens.push_back(createToken(TokenType::BIT_AND, text)); break;
+            case '&':
+                if (peek() == '&') {
+                    advance();
+                    tokens.push_back(createToken(TokenType::AND_AND, "&&"));
+                } else {
+                    tokens.push_back(createToken(TokenType::BIT_AND, "&"));
+                }
+                break;
+            case '|':
+                if (peek() == '|') {
+                    advance();
+                    tokens.push_back(createToken(TokenType::OR_OR, "||"));
+                } else {
+                    tokens.push_back(createToken(TokenType::BIT_OR, "|"));
+                }
+                break;
             case '~': tokens.push_back(createToken(TokenType::BIT_NOT, text)); break;
             case '=':
                 if (peek() == '=') {

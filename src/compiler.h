@@ -1,8 +1,14 @@
 #pragma once
 #include "ast.h"
 #include "opcode.h"
-#include <unordered_map>
 #include <string>
+#include <vector>
+
+struct Local {
+    std::string name;
+    int depth;
+    int32_t id;
+};
 
 class Compiler : public ASTVisitor {
 public:
@@ -12,6 +18,7 @@ public:
     void visitBinaryExpr(BinaryExpr& expr) override;
     void visitUnaryExpr(UnaryExpr& expr) override;
     void visitLiteralExpr(LiteralExpr& expr) override;
+    void visitLogicalExpr(LogicalExpr& expr) override;
     void visitVariableExpr(VariableExpr& expr) override;
     void visitInputExpr(InputExpr& expr) override;
     void visitAssignExpr(AssignExpr& expr) override;
@@ -25,9 +32,13 @@ public:
 
 private:
     Chunk chunk;
-    std::unordered_map<std::string, int32_t> variables;
+    std::vector<Local> locals;
+    int variablesCount;
+    int currentDepth;
     
     int32_t resolveVariable(const std::string& name, bool declare);
+    void beginScope();
+    void endScope();
     
     int emitJmp(Opcode instruction);
     void patchJmp(int offsetIndex);

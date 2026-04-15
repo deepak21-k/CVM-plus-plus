@@ -151,7 +151,7 @@ std::unique_ptr<Expression> Parser::expression() {
 }
 
 std::unique_ptr<Expression> Parser::assignment() {
-    std::unique_ptr<Expression> expr = bitwiseXor();
+    std::unique_ptr<Expression> expr = logicalOr();
 
     if (match({TokenType::EQUAL})) {
         Token equals = previous();
@@ -165,6 +165,36 @@ std::unique_ptr<Expression> Parser::assignment() {
         throw std::runtime_error("Invalid assignment target.");
     }
 
+    return expr;
+}
+
+std::unique_ptr<Expression> Parser::logicalOr() {
+    std::unique_ptr<Expression> expr = logicalAnd();
+    while (match({TokenType::OR_OR})) {
+        Token op = previous();
+        std::unique_ptr<Expression> right = logicalAnd();
+        expr = std::make_unique<LogicalExpr>(std::move(expr), std::move(op), std::move(right));
+    }
+    return expr;
+}
+
+std::unique_ptr<Expression> Parser::logicalAnd() {
+    std::unique_ptr<Expression> expr = bitwiseOr();
+    while (match({TokenType::AND_AND})) {
+        Token op = previous();
+        std::unique_ptr<Expression> right = bitwiseOr();
+        expr = std::make_unique<LogicalExpr>(std::move(expr), std::move(op), std::move(right));
+    }
+    return expr;
+}
+
+std::unique_ptr<Expression> Parser::bitwiseOr() {
+    std::unique_ptr<Expression> expr = bitwiseXor();
+    while (match({TokenType::BIT_OR})) {
+        Token op = previous();
+        std::unique_ptr<Expression> right = bitwiseXor();
+        expr = std::make_unique<BinaryExpr>(std::move(expr), std::move(op), std::move(right));
+    }
     return expr;
 }
 

@@ -8,7 +8,7 @@ enum class Opcode : uint8_t {
     PUSH_BOOL,
     ADD, SUB, MUL, DIV, MOD,
     EQ, NEQ, LT, GT, LTE, GTE,
-    BIT_XOR, BIT_AND, SHL, SHR, BIT_NOT,
+    BIT_XOR, BIT_AND, BIT_OR, SHL, SHR, BIT_NOT,
     NOT, NEG, POP,
     SET_VAR,
     GET_VAR,
@@ -34,9 +34,11 @@ struct Chunk {
     }
 
     int32_t readInt(size_t offset) const {
-        return (static_cast<int32_t>(code[offset]) << 24) |
-               (static_cast<int32_t>(code[offset + 1]) << 16) |
-               (static_cast<int32_t>(code[offset + 2]) << 8) |
-               (static_cast<int32_t>(code[offset + 3]));
+        return static_cast<int32_t>(
+               (static_cast<uint32_t>(code[offset]) << 24) |
+               (static_cast<uint32_t>(code[offset + 1]) << 16) |
+               (static_cast<uint32_t>(code[offset + 2]) << 8) |
+               (static_cast<uint32_t>(code[offset + 3]))
+        );
     }
 };

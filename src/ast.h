@@ -32,6 +32,16 @@ struct UnaryExpr : public Expression {
     void accept(ASTVisitor& visitor) override;
 };
 
+struct LogicalExpr : public Expression {
+    std::unique_ptr<Expression> left;
+    Token op;
+    std::unique_ptr<Expression> right;
+
+    LogicalExpr(std::unique_ptr<Expression> left, Token op, std::unique_ptr<Expression> right)
+        : left(std::move(left)), op(std::move(op)), right(std::move(right)) {}
+    void accept(ASTVisitor& visitor) override;
+};
+
 struct LiteralExpr : public Expression {
     Token value;
 
@@ -116,6 +126,7 @@ public:
     virtual void visitBinaryExpr(BinaryExpr& expr) = 0;
     virtual void visitUnaryExpr(UnaryExpr& expr) = 0;
     virtual void visitLiteralExpr(LiteralExpr& expr) = 0;
+    virtual void visitLogicalExpr(LogicalExpr& expr) = 0;
     virtual void visitVariableExpr(VariableExpr& expr) = 0;
     virtual void visitInputExpr(InputExpr& expr) = 0;
     virtual void visitAssignExpr(AssignExpr& expr) = 0;

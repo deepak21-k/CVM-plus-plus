@@ -8,7 +8,8 @@ enum class TokenType {
     // Operators
     PLUS, MINUS, STAR, SLASH, MOD,
     EQUAL, EQ_EQ, BANG_EQ, LESS, GREATER, LESS_EQ, GREATER_EQ,
-    BIT_XOR, BIT_AND, SHL, SHR, BIT_NOT, NOT,
+    BIT_XOR, BIT_AND, BIT_OR, SHL, SHR, BIT_NOT, NOT,
+    AND_AND, OR_OR,
 
     // Symbols
     LPAREN, RPAREN, LBRACE, RBRACE, SEMICOLON,

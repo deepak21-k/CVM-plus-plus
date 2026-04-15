@@ -1,7 +1,7 @@
 #include "compiler.h"
 #include <stdexcept>
 
-Compiler::Compiler() {}
+Compiler::Compiler() : variablesCount(0), currentDepth(0) {}
 
 Chunk Compiler::compile(const std::vector<std::unique_ptr<Statement>>& statements) {
     chunk = Chunk();
@@ -14,12 +14,30 @@ Chunk Compiler::compile(const std::vector<std::unique_ptr<Statement>>& statement
 }
 
 int32_t Compiler::resolveVariable(const std::string& name, bool declare) {
-    if (variables.find(name) == variables.end()) {
-        if (!declare) throw std::runtime_error("Undeclared variable '" + name + "'");
-        int32_t id = variables.size();
-        variables[name] = id;
+    if (declare) {
+        for (auto it = locals.rbegin(); it != locals.rend(); ++it) {
+            if (it->depth < currentDepth) break;
+            if (it->name == name) throw std::runtime_error("Variable '" + name + "' already declared in this scope.");
+        }
+        int32_t id = variablesCount++;
+        locals.push_back({name, currentDepth, id});
+        return id;
     }
-    return variables[name];
+    for (auto it = locals.rbegin(); it != locals.rend(); ++it) {
+        if (it->name == name) return it->id;
+    }
+    throw std::runtime_error("Undeclared variable '" + name + "'");
+}
+
+void Compiler::beginScope() {
+    currentDepth++;
+}
+
+void Compiler::endScope() {
+    currentDepth--;
+    while (!locals.empty() && locals.back().depth > currentDepth) {
+        locals.pop_back();
+    }
 }
 
 int Compiler::emitJmp(Opcode instruction) {
@@ -62,7 +80,37 @@ void Compiler::visitBinaryExpr(BinaryExpr& expr) {
         case TokenType::BIT_AND: chunk.write(static_cast<uint8_t>(Opcode::BIT_AND)); break;
         case TokenType::SHL: chunk.write(static_cast<uint8_t>(Opcode::SHL)); break;
         case TokenType::SHR: chunk.write(static_cast<uint8_t>(Opcode::SHR)); break;
+        case TokenType::BIT_OR: chunk.write(static_cast<uint8_t>(Opcode::BIT_OR)); break;
         default: throw std::runtime_error("Unknown binary operator");
+    }
+}
+
+void Compiler::visitLogicalExpr(LogicalExpr& expr) {
+    expr.left->accept(*this);
+    
+    if (expr.op.type == TokenType::AND_AND) {
+        int endJump = emitJmp(Opcode::JMP_IF_FALSE);
+        
+        chunk.write(static_cast<uint8_t>(Opcode::POP)); // pop left if true
+        expr.right->accept(*this);
+        int skipJump = emitJmp(Opcode::JMP);
+        
+        patchJmp(endJump);
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+        chunk.writeInt(0);
+        
+        patchJmp(skipJump);
+    } else if (expr.op.type == TokenType::OR_OR) {
+        int elseJump = emitJmp(Opcode::JMP_IF_FALSE);
+        
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+        chunk.writeInt(1); // pushes true 
+        int endJump = emitJmp(Opcode::JMP);
+        
+        patchJmp(elseJump);
+        expr.right->accept(*this);
+        
+        patchJmp(endJump);
     }
 }
 
@@ -112,9 +160,11 @@ void Compiler::visitAssignExpr(AssignExpr& expr) {
 }
 
 void Compiler::visitBlockStmt(BlockStmt& stmt) {
+    beginScope();
     for (const auto& s : stmt.statements) {
         s->accept(*this);
     }
+    endScope();
 }
 
 void Compiler::visitExpressionStmt(ExpressionStmt& stmt) {

@@ -116,6 +116,12 @@ void VM::execute(const Chunk& chunk) {
                 push(a & b);
                 break;
             }
+            case Opcode::BIT_OR: {
+                int32_t b = pop();
+                int32_t a = pop();
+                push(a | b);
+                break;
+            }
             case Opcode::SHL: {
                 int32_t b = pop();
                 int32_t a = pop();

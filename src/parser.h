@@ -37,6 +37,9 @@ private:
     // Expression Parsing
     std::unique_ptr<Expression> expression();
     std::unique_ptr<Expression> assignment();
+    std::unique_ptr<Expression> logicalOr();
+    std::unique_ptr<Expression> logicalAnd();
+    std::unique_ptr<Expression> bitwiseOr();
     std::unique_ptr<Expression> bitwiseXor();
     std::unique_ptr<Expression> bitwiseAnd();
     std::unique_ptr<Expression> equality();

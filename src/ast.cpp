@@ -2,6 +2,7 @@
 
 void BinaryExpr::accept(ASTVisitor& visitor) { visitor.visitBinaryExpr(*this); }
 void UnaryExpr::accept(ASTVisitor& visitor) { visitor.visitUnaryExpr(*this); }
+void LogicalExpr::accept(ASTVisitor& visitor) { visitor.visitLogicalExpr(*this); }
 void LiteralExpr::accept(ASTVisitor& visitor) { visitor.visitLiteralExpr(*this); }
 void VariableExpr::accept(ASTVisitor& visitor) { visitor.visitVariableExpr(*this); }
 void InputExpr::accept(ASTVisitor& visitor) { visitor.visitInputExpr(*this); }
