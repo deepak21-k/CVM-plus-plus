@@ -1,6 +1,8 @@
 #include "lexer.h"
 #include <cctype>
 #include <unordered_map>
+#include <stdexcept>
+#include <string>
 
 Lexer::Lexer(const std::string& source) : source(source), pos(0), line(1), column(1) {}
 
@@ -95,20 +97,19 @@ std::vector<Token> Lexer::tokenize() {
         }
 
         char advanced = advance();
-        std::string text(1, advanced);
         
         switch (advanced) {
-            case '+': tokens.push_back(createToken(TokenType::PLUS, text)); break;
-            case '-': tokens.push_back(createToken(TokenType::MINUS, text)); break;
-            case '*': tokens.push_back(createToken(TokenType::STAR, text)); break;
-            case '/': tokens.push_back(createToken(TokenType::SLASH, text)); break;
-            case '%': tokens.push_back(createToken(TokenType::MOD, text)); break;
-            case '(': tokens.push_back(createToken(TokenType::LPAREN, text)); break;
-            case ')': tokens.push_back(createToken(TokenType::RPAREN, text)); break;
-            case '{': tokens.push_back(createToken(TokenType::LBRACE, text)); break;
-            case '}': tokens.push_back(createToken(TokenType::RBRACE, text)); break;
-            case ';': tokens.push_back(createToken(TokenType::SEMICOLON, text)); break;
-            case '^': tokens.push_back(createToken(TokenType::BIT_XOR, text)); break;
+            case '+': tokens.push_back(createToken(TokenType::PLUS, "+")); break;
+            case '-': tokens.push_back(createToken(TokenType::MINUS, "-")); break;
+            case '*': tokens.push_back(createToken(TokenType::STAR, "*")); break;
+            case '/': tokens.push_back(createToken(TokenType::SLASH, "/")); break;
+            case '%': tokens.push_back(createToken(TokenType::MOD, "%")); break;
+            case '(': tokens.push_back(createToken(TokenType::LPAREN, "(")); break;
+            case ')': tokens.push_back(createToken(TokenType::RPAREN, ")")); break;
+            case '{': tokens.push_back(createToken(TokenType::LBRACE, "{")); break;
+            case '}': tokens.push_back(createToken(TokenType::RBRACE, "}")); break;
+            case ';': tokens.push_back(createToken(TokenType::SEMICOLON, ";")); break;
+            case '^': tokens.push_back(createToken(TokenType::BIT_XOR, "^")); break;
             case '&':
                 if (peek() == '&') {
                     advance();
@@ -125,7 +126,7 @@ std::vector<Token> Lexer::tokenize() {
                     tokens.push_back(createToken(TokenType::BIT_OR, "|"));
                 }
                 break;
-            case '~': tokens.push_back(createToken(TokenType::BIT_NOT, text)); break;
+            case '~': tokens.push_back(createToken(TokenType::BIT_NOT, "~")); break;
             case '=':
                 if (peek() == '=') {
                     advance();
@@ -165,8 +166,8 @@ std::vector<Token> Lexer::tokenize() {
                 }
                 break;
             default: {
-                std::string text(1, c);
-                throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Unexpected character '" + text + "'");
+                std::string errText(1, advanced);
+                throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Unexpected character '" + errText + "'");
             }
         }
     }

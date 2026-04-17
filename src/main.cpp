@@ -18,7 +18,8 @@ void run(const std::string& source, Compiler& compiler, VM& vm) {
 
         vm.execute(chunk);
     } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "Error: " << e.what() << '\n';
+        compiler = Compiler(); // Clean up corrupted REPL depths implicitly
     }
 }
 

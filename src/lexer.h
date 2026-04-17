@@ -5,11 +5,11 @@
 
 class Lexer {
 public:
-    explicit Lexer(const std::string& source);
+    Lexer(const std::string& source);
     std::vector<Token> tokenize();
 
 private:
-    std::string source;
+    const std::string& source;
     size_t pos;
     int line;
     int column;
