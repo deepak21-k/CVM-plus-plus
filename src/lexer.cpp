@@ -71,6 +71,7 @@ std::vector<Token> Lexer::tokenize() {
         
         if (std::isalpha(static_cast<unsigned char>(c)) || c == '_') {
             std::string ident;
+            ident.reserve(16);
             while (!isAtEnd() && (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '_')) {
                 ident += advance();
             }
@@ -84,6 +85,7 @@ std::vector<Token> Lexer::tokenize() {
 
         if (std::isdigit(c)) {
             std::string num;
+            num.reserve(16);
             while (!isAtEnd() && std::isdigit(peek())) {
                 num += advance();
             }
@@ -161,9 +163,10 @@ std::vector<Token> Lexer::tokenize() {
                     tokens.push_back(createToken(TokenType::NOT, "!"));
                 }
                 break;
-            default:
-                tokens.push_back(createToken(TokenType::INVALID, text));
-                break;
+            default: {
+                std::string text(1, c);
+                throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Unexpected character '" + text + "'");
+            }
         }
     }
     

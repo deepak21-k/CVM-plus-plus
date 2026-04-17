@@ -10,7 +10,7 @@ enum class Opcode : uint8_t {
     ADD, SUB, MUL, DIV, MOD,
     EQ, NEQ, LT, GT, LTE, GTE,
     BIT_XOR, BIT_AND, BIT_OR, SHL, SHR, BIT_NOT,
-    NOT, NEG, POP,
+    NOT, NORMALIZE, NEG, POP,
     SET_VAR,
     GET_VAR,
     SET_VAR_PUSH,

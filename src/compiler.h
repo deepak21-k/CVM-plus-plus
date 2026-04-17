@@ -34,6 +34,7 @@ private:
     Chunk chunk;
     std::vector<Local> locals;
     int variablesCount;
+    std::vector<int32_t> freeIds;
     int currentDepth;
     
     int32_t resolveVariable(const std::string& name, bool declare);

@@ -20,7 +20,14 @@ int32_t Compiler::resolveVariable(const std::string& name, bool declare) {
             if (it->depth < currentDepth) break;
             if (it->name == name) throw std::runtime_error("Variable '" + name + "' already declared in this scope.");
         }
-        int32_t id = variablesCount++;
+        // Needs declaring
+        int32_t id;
+        if (!freeIds.empty()) {
+            id = freeIds.back();
+            freeIds.pop_back();
+        } else {
+            id = variablesCount++;
+        }
         locals.push_back({name, currentDepth, id});
         return id;
     }
@@ -37,6 +44,7 @@ void Compiler::beginScope() {
 void Compiler::endScope() {
     currentDepth--;
     while (!locals.empty() && locals.back().depth > currentDepth) {
+        freeIds.push_back(locals.back().id);
         locals.pop_back();
     }
 }
@@ -95,8 +103,7 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
         int endJump = emitJmp(Opcode::JMP_IF_FALSE);
         
         expr.right->accept(*this);
-        chunk.write(static_cast<uint8_t>(Opcode::NOT));
-        chunk.write(static_cast<uint8_t>(Opcode::NOT));
+        chunk.write(static_cast<uint8_t>(Opcode::NORMALIZE));
         int skipJump = emitJmp(Opcode::JMP);
         
         patchJmp(endJump);
@@ -113,8 +120,7 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
         
         patchJmp(elseJump);
         expr.right->accept(*this);
-        chunk.write(static_cast<uint8_t>(Opcode::NOT));
-        chunk.write(static_cast<uint8_t>(Opcode::NOT));
+        chunk.write(static_cast<uint8_t>(Opcode::NORMALIZE));
         
         patchJmp(endJump);
     }

@@ -42,19 +42,25 @@ void VM::execute(const Chunk& chunk) {
             case Opcode::ADD: {
                 int32_t b = pop();
                 int32_t a = pop();
-                push(a + b);
+                int64_t result = static_cast<int64_t>(a) + static_cast<int64_t>(b);
+                if (result > INT32_MAX || result < INT32_MIN) throw std::runtime_error("Integer overflow in addition");
+                push(static_cast<int32_t>(result));
                 break;
             }
             case Opcode::SUB: {
                 int32_t b = pop();
                 int32_t a = pop();
-                push(a - b);
+                int64_t result = static_cast<int64_t>(a) - static_cast<int64_t>(b);
+                if (result > INT32_MAX || result < INT32_MIN) throw std::runtime_error("Integer overflow in subtraction");
+                push(static_cast<int32_t>(result));
                 break;
             }
             case Opcode::MUL: {
                 int32_t b = pop();
                 int32_t a = pop();
-                push(a * b);
+                int64_t result = static_cast<int64_t>(a) * static_cast<int64_t>(b);
+                if (result > INT32_MAX || result < INT32_MIN) throw std::runtime_error("Integer overflow in multiplication");
+                push(static_cast<int32_t>(result));
                 break;
             }
             case Opcode::DIV: {
@@ -151,6 +157,11 @@ void VM::execute(const Chunk& chunk) {
                 push(a == 0 ? 1 : 0);
                 break;
             }
+            case Opcode::NORMALIZE: {
+                int32_t a = pop();
+                push(a == 0 ? 0 : 1);
+                break;
+            }
             case Opcode::NEG: {
                 int32_t a = pop();
                 if (a == INT32_MIN) throw std::runtime_error("Integer overflow in negation");
@@ -188,7 +199,9 @@ void VM::execute(const Chunk& chunk) {
             case Opcode::JMP: {
                 int32_t offset = chunk.readInt(ip);
                 ip += 4;
-                ip += offset;
+                size_t newIp = static_cast<size_t>(static_cast<int64_t>(ip) + offset);
+                if (newIp > chunk.code.size()) throw std::runtime_error("Jump target out of bounds");
+                ip = newIp;
                 break;
             }
             case Opcode::JMP_IF_FALSE: {
@@ -196,7 +209,9 @@ void VM::execute(const Chunk& chunk) {
                 ip += 4;
                 int32_t cond = pop();
                 if (cond == 0) {
-                    ip += offset;
+                    size_t newIp = static_cast<size_t>(static_cast<int64_t>(ip) + offset);
+                    if (newIp > chunk.code.size()) throw std::runtime_error("Jump target out of bounds");
+                    ip = newIp;
                 }
                 break;
             }

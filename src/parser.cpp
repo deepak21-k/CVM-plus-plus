@@ -27,7 +27,7 @@ const Token& Parser::previous() const {
     return tokens[current - 1];
 }
 
-Token Parser::advance() {
+const Token& Parser::advance() {
     if (!isAtEnd()) current++;
     return previous();
 }
