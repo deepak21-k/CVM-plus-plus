@@ -95,6 +95,8 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
         int endJump = emitJmp(Opcode::JMP_IF_FALSE);
         
         expr.right->accept(*this);
+        chunk.write(static_cast<uint8_t>(Opcode::NOT));
+        chunk.write(static_cast<uint8_t>(Opcode::NOT));
         int skipJump = emitJmp(Opcode::JMP);
         
         patchJmp(endJump);
@@ -111,6 +113,8 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
         
         patchJmp(elseJump);
         expr.right->accept(*this);
+        chunk.write(static_cast<uint8_t>(Opcode::NOT));
+        chunk.write(static_cast<uint8_t>(Opcode::NOT));
         
         patchJmp(endJump);
     }
@@ -161,11 +165,7 @@ void Compiler::visitInputExpr(InputExpr&) {
 void Compiler::visitAssignExpr(AssignExpr& expr) {
     expr.value->accept(*this);
     int32_t id = resolveVariable(expr.name.value, false);
-    chunk.write(static_cast<uint8_t>(Opcode::SET_VAR));
-    chunk.writeInt(id);
-    
-    // Assignment evaluates to the assigned value, so push it back
-    chunk.write(static_cast<uint8_t>(Opcode::GET_VAR));
+    chunk.write(static_cast<uint8_t>(Opcode::SET_VAR_PUSH));
     chunk.writeInt(id);
 }
 
@@ -200,14 +200,14 @@ void Compiler::visitIfStmt(IfStmt& stmt) {
     
     stmt.thenBranch->accept(*this);
     
-    int elseJmp = emitJmp(Opcode::JMP);
-    patchJmp(thenJmp);
-    
     if (stmt.elseBranch) {
+        int elseJmp = emitJmp(Opcode::JMP);
+        patchJmp(thenJmp);
         stmt.elseBranch->accept(*this);
+        patchJmp(elseJmp);
+    } else {
+        patchJmp(thenJmp);
     }
-    
-    patchJmp(elseJmp);
 }
 
 void Compiler::visitWhileStmt(WhileStmt& stmt) {

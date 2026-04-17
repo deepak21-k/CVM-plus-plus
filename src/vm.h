@@ -7,6 +7,7 @@ class VM {
 public:
     VM();
     void execute(const Chunk& chunk);
+    void resetStack() { sp = 0; }
 
     // For testing/debugging, we can inspect stack or variables
     int32_t peekStack() const;
