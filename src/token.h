@@ -19,8 +19,7 @@ enum class TokenType {
     NUMBER, IDENTIFIER,
 
     // End of file
-    END_OF_FILE,
-    INVALID
+    END_OF_FILE
 };
 
 struct Token {

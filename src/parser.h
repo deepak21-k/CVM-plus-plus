@@ -20,7 +20,7 @@ private:
     const Token& advance();
     bool check(TokenType type) const;
     bool match(std::initializer_list<TokenType> types);
-    Token consume(TokenType type, const std::string& message);
+    const Token& consume(TokenType type, const std::string& message);
 
     bool isAtEnd() const;
 

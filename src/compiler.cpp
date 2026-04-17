@@ -72,6 +72,49 @@ void Compiler::emitLoop(int loopStart) {
 }
 
 void Compiler::visitBinaryExpr(BinaryExpr& expr) {
+    if (auto* leftLit = dynamic_cast<LiteralExpr*>(expr.left.get())) {
+        if (auto* rightLit = dynamic_cast<LiteralExpr*>(expr.right.get())) {
+            if (leftLit->value.type == TokenType::NUMBER && rightLit->value.type == TokenType::NUMBER) {
+                int32_t a = std::stoi(leftLit->value.value);
+                int32_t b = std::stoi(rightLit->value.value);
+                int64_t result;
+                switch (expr.op.type) {
+                    case TokenType::PLUS:  result = static_cast<int64_t>(a) + static_cast<int64_t>(b); break;
+                    case TokenType::MINUS: result = static_cast<int64_t>(a) - static_cast<int64_t>(b); break;
+                    case TokenType::STAR:  result = static_cast<int64_t>(a) * static_cast<int64_t>(b); break;
+                    case TokenType::SLASH:
+                        if (b == 0) throw std::runtime_error("Division by zero in constant expression");
+                        if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in constant division");
+                        result = static_cast<int64_t>(a) / b; break;
+                    case TokenType::MOD:
+                        if (b == 0) throw std::runtime_error("Modulo by zero in constant expression");
+                        if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in constant modulo");
+                        result = static_cast<int64_t>(a) % b; break;
+                    case TokenType::BIT_XOR: result = a ^ b; break;
+                    case TokenType::BIT_AND: result = a & b; break;
+                    case TokenType::BIT_OR:  result = a | b; break;
+                    case TokenType::SHL:     
+                        if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
+                        result = static_cast<int32_t>(static_cast<uint32_t>(a) << b); break;
+                    case TokenType::SHR:     
+                        if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
+                        result = a >> b; break;
+                    case TokenType::EQ_EQ:   result = (a == b) ? 1 : 0; break;
+                    case TokenType::BANG_EQ: result = (a != b) ? 1 : 0; break;
+                    case TokenType::LESS:    result = (a < b)  ? 1 : 0; break;
+                    case TokenType::LESS_EQ: result = (a <= b) ? 1 : 0; break;
+                    case TokenType::GREATER: result = (a > b)  ? 1 : 0; break;
+                    case TokenType::GREATER_EQ: result = (a >= b) ? 1 : 0; break;
+                    default: goto no_fold;
+                }
+                if (result > INT32_MAX || result < INT32_MIN) throw std::runtime_error("Integer overflow in constant expression");
+                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+                chunk.writeInt(static_cast<int32_t>(result));
+                return;
+            }
+        }
+    }
+no_fold:
     expr.left->accept(*this);
     expr.right->accept(*this);
 
@@ -123,6 +166,8 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
         chunk.write(static_cast<uint8_t>(Opcode::NORMALIZE));
         
         patchJmp(endJump);
+    } else {
+        throw std::runtime_error("Unknown logical operator");
     }
 }
 
@@ -134,6 +179,8 @@ void Compiler::visitUnaryExpr(UnaryExpr& expr) {
         chunk.write(static_cast<uint8_t>(Opcode::NOT));
     } else if (expr.op.type == TokenType::MINUS) {
         chunk.write(static_cast<uint8_t>(Opcode::NEG));
+    } else {
+        throw std::runtime_error("Unknown unary operator");
     }
 }
 
@@ -148,6 +195,8 @@ void Compiler::visitLiteralExpr(LiteralExpr& expr) {
             chunk.writeInt(static_cast<int32_t>(val));
         } catch (const std::out_of_range&) {
             throw std::runtime_error("Integer literal out of range: " + expr.value.value);
+        } catch (const std::invalid_argument&) {
+            throw std::runtime_error("Invalid integer literal: " + expr.value.value);
         }
     } else if (expr.value.type == TokenType::TRUE_LIT) {
         chunk.write(static_cast<uint8_t>(Opcode::PUSH_BOOL));
@@ -155,6 +204,8 @@ void Compiler::visitLiteralExpr(LiteralExpr& expr) {
     } else if (expr.value.type == TokenType::FALSE_LIT) {
         chunk.write(static_cast<uint8_t>(Opcode::PUSH_BOOL));
         chunk.write(0);
+    } else {
+        throw std::runtime_error("Unknown literal type");
     }
 }
 

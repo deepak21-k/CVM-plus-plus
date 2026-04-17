@@ -75,8 +75,9 @@ std::vector<Token> Lexer::tokenize() {
             while (!isAtEnd() && (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '_')) {
                 ident += advance();
             }
-            if (keywords.find(ident) != keywords.end()) {
-                tokens.push_back(createToken(keywords.at(ident), ident));
+            auto it = keywords.find(ident);
+            if (it != keywords.end()) {
+                tokens.push_back(createToken(it->second, ident));
             } else {
                 tokens.push_back(createToken(TokenType::IDENTIFIER, ident));
             }

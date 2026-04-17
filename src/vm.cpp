@@ -176,7 +176,11 @@ void VM::execute(const Chunk& chunk) {
                 int32_t id = chunk.readInt(ip);
                 ip += 4;
                 int32_t val = pop();
-                if (id >= static_cast<int32_t>(globals.size())) globals.resize(id + 1, 0);
+                if (id < 0) throw std::runtime_error("Negative variable ID");
+                if (id >= static_cast<int32_t>(globals.size())) {
+                    if (id > 100000) throw std::runtime_error("Too many variables");
+                    globals.resize(static_cast<size_t>(id) + 1, 0);
+                }
                 globals[id] = val;
                 break;
             }
@@ -184,7 +188,11 @@ void VM::execute(const Chunk& chunk) {
                 int32_t id = chunk.readInt(ip);
                 ip += 4;
                 int32_t val = pop();
-                if (id >= static_cast<int32_t>(globals.size())) globals.resize(id + 1, 0);
+                if (id < 0) throw std::runtime_error("Negative variable ID");
+                if (id >= static_cast<int32_t>(globals.size())) {
+                    if (id > 100000) throw std::runtime_error("Too many variables");
+                    globals.resize(static_cast<size_t>(id) + 1, 0);
+                }
                 globals[id] = val;
                 push(val);
                 break;
@@ -192,7 +200,9 @@ void VM::execute(const Chunk& chunk) {
             case Opcode::GET_VAR: {
                 int32_t id = chunk.readInt(ip);
                 ip += 4;
-                if (id >= static_cast<int32_t>(globals.size())) throw std::runtime_error("Undefined variable read");
+                if (id < 0 || id >= static_cast<int32_t>(globals.size())) {
+                    throw std::runtime_error("Undefined variable read");
+                }
                 push(globals[id]);
                 break;
             }

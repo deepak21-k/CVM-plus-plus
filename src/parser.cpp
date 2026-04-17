@@ -47,9 +47,9 @@ bool Parser::match(std::initializer_list<TokenType> types) {
     return false;
 }
 
-Token Parser::consume(TokenType type, const std::string& message) {
+const Token& Parser::consume(TokenType type, const std::string& message) {
     if (check(type)) return advance();
-    throw std::runtime_error("Parser Error [" + std::to_string(peek().line) + "]: " + message);
+    throw std::runtime_error("Parser Error [" + std::to_string(peek().line) + "]: " + message + " (got '" + peek().value + "')");
 }
 
 void Parser::synchronize() {
@@ -155,7 +155,6 @@ std::unique_ptr<Expression> Parser::assignment() {
     std::unique_ptr<Expression> expr = logicalOr();
 
     if (match({TokenType::EQUAL})) {
-        Token equals = previous();
         std::unique_ptr<Expression> value = assignment();
 
         if (auto* varExpr = dynamic_cast<VariableExpr*>(expr.get())) {
