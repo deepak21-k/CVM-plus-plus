@@ -52,7 +52,7 @@ Token Lexer::createToken(TokenType type, const std::string& value) {
 std::vector<Token> Lexer::tokenize() {
     std::vector<Token> tokens;
     
-    std::unordered_map<std::string, TokenType> keywords = {
+    static const std::unordered_map<std::string, TokenType> keywords = {
         {"let", TokenType::LET},
         {"if", TokenType::IF},
         {"else", TokenType::ELSE},
@@ -69,13 +69,13 @@ std::vector<Token> Lexer::tokenize() {
 
         char c = peek();
         
-        if (std::isalpha(c) || c == '_') {
+        if (std::isalpha(static_cast<unsigned char>(c)) || c == '_') {
             std::string ident;
-            while (!isAtEnd() && (std::isalnum(peek()) || peek() == '_')) {
+            while (!isAtEnd() && (std::isalnum(static_cast<unsigned char>(peek())) || peek() == '_')) {
                 ident += advance();
             }
             if (keywords.find(ident) != keywords.end()) {
-                tokens.push_back(createToken(keywords[ident], ident));
+                tokens.push_back(createToken(keywords.at(ident), ident));
             } else {
                 tokens.push_back(createToken(TokenType::IDENTIFIER, ident));
             }

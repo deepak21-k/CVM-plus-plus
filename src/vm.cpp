@@ -1,6 +1,7 @@
 #include "vm.h"
 #include <iostream>
 #include <stdexcept>
+#include <limits>
 
 VM::VM() : sp(0) {}
 
@@ -20,8 +21,10 @@ int32_t VM::peekStack() const {
 }
 
 void VM::execute(const Chunk& chunk) {
-    size_t ip = 0; // instruction pointer
-    while (ip < chunk.code.size()) {
+    size_t savedSp = sp;
+    try {
+        size_t ip = 0; // instruction pointer
+        while (ip < chunk.code.size()) {
         Opcode instruction = static_cast<Opcode>(chunk.code[ip++]);
 
         switch (instruction) {
@@ -58,6 +61,7 @@ void VM::execute(const Chunk& chunk) {
                 int32_t b = pop();
                 int32_t a = pop();
                 if (b == 0) throw std::runtime_error("Division by zero");
+                if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in division");
                 push(a / b);
                 break;
             }
@@ -65,6 +69,7 @@ void VM::execute(const Chunk& chunk) {
                 int32_t b = pop();
                 int32_t a = pop();
                 if (b == 0) throw std::runtime_error("Modulo by zero");
+                if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in modulo");
                 push(a % b);
                 break;
             }
@@ -126,7 +131,7 @@ void VM::execute(const Chunk& chunk) {
                 int32_t b = pop();
                 int32_t a = pop();
                 if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
-                push(a << b);
+                push(static_cast<int32_t>(static_cast<uint32_t>(a) << b));
                 break;
             }
             case Opcode::SHR: {
@@ -148,6 +153,7 @@ void VM::execute(const Chunk& chunk) {
             }
             case Opcode::NEG: {
                 int32_t a = pop();
+                if (a == INT32_MIN) throw std::runtime_error("Integer overflow in negation");
                 push(-a);
                 break;
             }
@@ -159,12 +165,23 @@ void VM::execute(const Chunk& chunk) {
                 int32_t id = chunk.readInt(ip);
                 ip += 4;
                 int32_t val = pop();
+                if (id >= static_cast<int32_t>(globals.size())) globals.resize(id + 1, 0);
                 globals[id] = val;
+                break;
+            }
+            case Opcode::SET_VAR_PUSH: {
+                int32_t id = chunk.readInt(ip);
+                ip += 4;
+                int32_t val = pop();
+                if (id >= static_cast<int32_t>(globals.size())) globals.resize(id + 1, 0);
+                globals[id] = val;
+                push(val);
                 break;
             }
             case Opcode::GET_VAR: {
                 int32_t id = chunk.readInt(ip);
                 ip += 4;
+                if (id >= static_cast<int32_t>(globals.size())) throw std::runtime_error("Undefined variable read");
                 push(globals[id]);
                 break;
             }
@@ -190,7 +207,11 @@ void VM::execute(const Chunk& chunk) {
             }
             case Opcode::INPUT: {
                 int32_t val;
-                std::cin >> val;
+                if (!(std::cin >> val)) {
+                    std::cin.clear();
+                    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                    throw std::runtime_error("Invalid input: expected an integer");
+                }
                 push(val);
                 break;
             }
@@ -200,5 +221,10 @@ void VM::execute(const Chunk& chunk) {
             default:
                 throw std::runtime_error("Unknown Opcode");
         }
+    }
+    throw std::runtime_error("Execution reached end of chunk without HALT");
+    } catch (...) {
+        sp = savedSp;
+        throw;
     }
 }

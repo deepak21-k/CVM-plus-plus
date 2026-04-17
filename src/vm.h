@@ -1,7 +1,7 @@
 #pragma once
 #include "opcode.h"
 #include <array>
-#include <unordered_map>
+#include <vector>
 
 class VM {
 public:
@@ -16,7 +16,7 @@ private:
     std::array<int32_t, STACK_MAX> stack;
     size_t sp; // Stack pointer
 
-    std::unordered_map<int32_t, int32_t> globals;
+    std::vector<int32_t> globals;
 
     void push(int32_t value);
     int32_t pop();

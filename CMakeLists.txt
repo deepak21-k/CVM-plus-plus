@@ -4,10 +4,6 @@ project(CVM_PlusPlus)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra ${CMAKE_CXX_FLAGS}")
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
 add_executable(cvm
     src/main.cpp
     src/lexer.cpp
@@ -15,4 +11,9 @@ add_executable(cvm
     src/parser.cpp
     src/compiler.cpp
     src/vm.cpp
+)
+
+target_compile_options(cvm PRIVATE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4>
 )

@@ -11,16 +11,18 @@ public:
     std::vector<std::unique_ptr<Statement>> parse();
 
 private:
-    std::vector<Token> tokens;
-    int current;
+    const std::vector<Token>& tokens;
+    size_t current;
 
-    bool isAtEnd() const;
-    Token peek() const;
-    Token previous() const;
+    // Helpers
+    const Token& peek() const;
+    const Token& previous() const;
     Token advance();
     bool check(TokenType type) const;
     bool match(std::initializer_list<TokenType> types);
     Token consume(TokenType type, const std::string& message);
+
+    bool isAtEnd() const;
 
     void synchronize();
 

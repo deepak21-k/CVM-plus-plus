@@ -18,11 +18,12 @@ bool Parser::isAtEnd() const {
     return peek().type == TokenType::END_OF_FILE;
 }
 
-Token Parser::peek() const {
+const Token& Parser::peek() const {
     return tokens[current];
 }
 
-Token Parser::previous() const {
+const Token& Parser::previous() const {
+    if (current == 0) throw std::runtime_error("Internal: previous() called at start");
     return tokens[current - 1];
 }
 

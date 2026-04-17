@@ -5,6 +5,7 @@ Compiler::Compiler() : variablesCount(0), currentDepth(0) {}
 
 Chunk Compiler::compile(const std::vector<std::unique_ptr<Statement>>& statements) {
     chunk = Chunk();
+    chunk.code.reserve(1024);
     // Do not clear variables here; REPL relies on persisting local variables table.
     for (const auto& stmt : statements) {
         stmt->accept(*this);
@@ -56,6 +57,8 @@ void Compiler::patchJmp(int offsetIndex) {
 
 void Compiler::emitLoop(int loopStart) {
     chunk.write(static_cast<uint8_t>(Opcode::JMP));
+    // After the VM reads the 4-byte operand, ip will be at (chunk.code.size() + 4).
+    // We need to jump back to loopStart, so offset = loopStart - (here + 4).
     int32_t offset = chunk.code.size() - loopStart + 4;
     chunk.writeInt(-offset);
 }
@@ -91,7 +94,6 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
     if (expr.op.type == TokenType::AND_AND) {
         int endJump = emitJmp(Opcode::JMP_IF_FALSE);
         
-        chunk.write(static_cast<uint8_t>(Opcode::POP)); // pop left if true
         expr.right->accept(*this);
         int skipJump = emitJmp(Opcode::JMP);
         
@@ -128,7 +130,15 @@ void Compiler::visitUnaryExpr(UnaryExpr& expr) {
 void Compiler::visitLiteralExpr(LiteralExpr& expr) {
     if (expr.value.type == TokenType::NUMBER) {
         chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
-        chunk.writeInt(std::stoi(expr.value.value));
+        try {
+            long long val = std::stoll(expr.value.value);
+            if (val > INT32_MAX || val < INT32_MIN) {
+                throw std::runtime_error("Integer literal out of range: " + expr.value.value);
+            }
+            chunk.writeInt(static_cast<int32_t>(val));
+        } catch (const std::out_of_range&) {
+            throw std::runtime_error("Integer literal out of range: " + expr.value.value);
+        }
     } else if (expr.value.type == TokenType::TRUE_LIT) {
         chunk.write(static_cast<uint8_t>(Opcode::PUSH_BOOL));
         chunk.write(1);
