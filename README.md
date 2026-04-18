@@ -115,3 +115,9 @@ while (x < limit) {
 2.  **Parser**: Standard Recursive Descent / Pratt architecture generating securely integrated AST implementations securely isolating block syntax.
 3.  **Compiler**: Emits nested bytecode chunks iteratively routing logic bindings tracking variable allocations cleanly isolated internally across native pools via `std::vector` mapping!
 4.  **Virtual Machine**: Master interpreter loop bounds-checking execution tracing directly returning safe outputs trapping exceptions natively.
+
+---
+
+## 📜 License
+
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more information.
