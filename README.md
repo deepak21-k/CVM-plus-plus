@@ -85,11 +85,12 @@ A quick intro to the semantics governing execution logic internally:
 
 ### Operators Supported
 
-| Type | Operators | 
-| :--- | :--- | 
+| Type | Operators |
+| :--- | :--- |
 | **Arithmetic** | `+`, `-`, `*`, `/`, `%` |
-| **Logic/Boolean** | `&&`, `||`, `!`, `==`, `!=`, `<`, `>`, `<=`, `>=` |
-| **Bitwise** | `&`, `|`, `^`, `<<`, `>>`, `~` |
+| **Update** | `++`, `--` |
+| **Logic/Boolean** | `&&`, `\|\|`, `!`, `==`, `!=`, `<`, `>`, `<=`, `>=` |
+| **Bitwise** | `&`, `\|`, `^`, `<<`, `>>`, `~` |
 
 ### Code Example
 
