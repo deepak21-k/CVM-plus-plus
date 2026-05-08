@@ -22,6 +22,7 @@ public:
     void visitVariableExpr(VariableExpr& expr) override;
     void visitInputExpr(InputExpr& expr) override;
     void visitAssignExpr(AssignExpr& expr) override;
+    void visitUpdateExpr(UpdateExpr& expr) override;
 
     void visitBlockStmt(BlockStmt& stmt) override;
     void visitExpressionStmt(ExpressionStmt& stmt) override;

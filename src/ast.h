@@ -70,6 +70,16 @@ struct AssignExpr : public Expression {
     void accept(ASTVisitor& visitor) override;
 };
 
+struct UpdateExpr : public Expression {
+    Token name;
+    bool isIncrement;
+    bool isPrefix;
+
+    UpdateExpr(Token name, bool isIncrement, bool isPrefix)
+        : name(std::move(name)), isIncrement(isIncrement), isPrefix(isPrefix) {}
+    void accept(ASTVisitor& visitor) override;
+};
+
 struct BlockStmt : public Statement {
     std::vector<std::unique_ptr<Statement>> statements;
 
@@ -158,6 +168,7 @@ public:
     virtual void visitVariableExpr(VariableExpr& expr) = 0;
     virtual void visitInputExpr(InputExpr& expr) = 0;
     virtual void visitAssignExpr(AssignExpr& expr) = 0;
+    virtual void visitUpdateExpr(UpdateExpr& expr) = 0;
 
     virtual void visitBlockStmt(BlockStmt& stmt) = 0;
     virtual void visitExpressionStmt(ExpressionStmt& stmt) = 0;

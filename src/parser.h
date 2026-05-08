@@ -53,5 +53,6 @@ private:
     std::unique_ptr<Expression> term();
     std::unique_ptr<Expression> factor();
     std::unique_ptr<Expression> unary();
+    std::unique_ptr<Expression> postfix();
     std::unique_ptr<Expression> primary();
 };

@@ -226,6 +226,31 @@ void Compiler::visitAssignExpr(AssignExpr& expr) {
     chunk.writeInt(id);
 }
 
+void Compiler::visitUpdateExpr(UpdateExpr& expr) {
+    int32_t id = resolveVariable(expr.name.value, false);
+    if (expr.isPrefix) {
+        // Prefix (++x / --x): update variable, leave NEW value on stack.
+        chunk.write(static_cast<uint8_t>(Opcode::GET_VAR));
+        chunk.writeInt(id);
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+        chunk.writeInt(1);
+        chunk.write(static_cast<uint8_t>(expr.isIncrement ? Opcode::ADD : Opcode::SUB));
+        chunk.write(static_cast<uint8_t>(Opcode::SET_VAR_PUSH));
+        chunk.writeInt(id);
+    } else {
+        // Postfix (x++ / x--): leave OLD value on stack, then update variable.
+        chunk.write(static_cast<uint8_t>(Opcode::GET_VAR));
+        chunk.writeInt(id); // old value (result)
+        chunk.write(static_cast<uint8_t>(Opcode::GET_VAR));
+        chunk.writeInt(id); // old value (for computation)
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+        chunk.writeInt(1);
+        chunk.write(static_cast<uint8_t>(expr.isIncrement ? Opcode::ADD : Opcode::SUB));
+        chunk.write(static_cast<uint8_t>(Opcode::SET_VAR));
+        chunk.writeInt(id);
+    }
+}
+
 void Compiler::visitBlockStmt(BlockStmt& stmt) {
     beginScope();
     for (const auto& s : stmt.statements) {

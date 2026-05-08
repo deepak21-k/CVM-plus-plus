@@ -102,8 +102,22 @@ std::vector<Token> Lexer::tokenize() {
         char advanced = advance();
         
         switch (advanced) {
-            case '+': tokens.push_back(createToken(TokenType::PLUS, "+")); break;
-            case '-': tokens.push_back(createToken(TokenType::MINUS, "-")); break;
+            case '+':
+                if (peek() == '+') {
+                    advance();
+                    tokens.push_back(createToken(TokenType::PLUS_PLUS, "++"));
+                } else {
+                    tokens.push_back(createToken(TokenType::PLUS, "+"));
+                }
+                break;
+            case '-':
+                if (peek() == '-') {
+                    advance();
+                    tokens.push_back(createToken(TokenType::MINUS_MINUS, "--"));
+                } else {
+                    tokens.push_back(createToken(TokenType::MINUS, "-"));
+                }
+                break;
             case '*': tokens.push_back(createToken(TokenType::STAR, "*")); break;
             case '/': tokens.push_back(createToken(TokenType::SLASH, "/")); break;
             case '%': tokens.push_back(createToken(TokenType::MOD, "%")); break;

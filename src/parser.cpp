@@ -307,12 +307,36 @@ std::unique_ptr<Expression> Parser::factor() {
 }
 
 std::unique_ptr<Expression> Parser::unary() {
+    if (match({TokenType::PLUS_PLUS, TokenType::MINUS_MINUS})) {
+        Token op = previous();
+        std::unique_ptr<Expression> right = unary();
+        auto* varExpr = dynamic_cast<VariableExpr*>(right.get());
+        if (!varExpr) {
+            throw std::runtime_error("Parser Error [" + std::to_string(op.line) + "]: Prefix update requires a variable.");
+        }
+        Token name = varExpr->name;
+        return std::make_unique<UpdateExpr>(std::move(name), op.type == TokenType::PLUS_PLUS, true);
+    }
     if (match({TokenType::MINUS, TokenType::BIT_NOT, TokenType::NOT})) {
         Token op = previous();
         std::unique_ptr<Expression> right = unary();
         return std::make_unique<UnaryExpr>(std::move(op), std::move(right));
     }
-    return primary();
+    return postfix();
+}
+
+std::unique_ptr<Expression> Parser::postfix() {
+    std::unique_ptr<Expression> expr = primary();
+    while (match({TokenType::PLUS_PLUS, TokenType::MINUS_MINUS})) {
+        Token op = previous();
+        auto* varExpr = dynamic_cast<VariableExpr*>(expr.get());
+        if (!varExpr) {
+            throw std::runtime_error("Parser Error [" + std::to_string(op.line) + "]: Postfix update requires a variable.");
+        }
+        Token name = varExpr->name;
+        expr = std::make_unique<UpdateExpr>(std::move(name), op.type == TokenType::PLUS_PLUS, false);
+    }
+    return expr;
 }
 
 std::unique_ptr<Expression> Parser::primary() {
