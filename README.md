@@ -1,10 +1,10 @@
-# CVM++ 🚀
+# CVM++
 
 **CVM++** is a high-performance, stack-based Virtual Machine and Compiler engineered entirely from scratch in modern C++. It's designed to be a robust, memory-safe, and blazingly fast execution engine.
 
 Featuring strict architectural protections, CVM++ executes custom typed instructions securely—handling lexical block scoping, runtime boundary mitigations, constant folding optimizations, and standard execution operations smoothly.
 
-## 🌟 Key Features
+## Key Features
 
 *   **Custom Stack-Based VM**: Clean `size_t` instruction pointer execution block, wrapping Two's Complement architectures naturally.
 *   **Single-Pass Compiler Pipeline**: Translates AST chunks linearly into tightly packed `std::vector<uint8_t>` executable bytecode dynamically!
@@ -20,7 +20,7 @@ Featuring strict architectural protections, CVM++ executes custom typed instruct
 
 ---
 
-## 🛠️ Building the Project
+## Building the Project
 
 ### Prerequisites
 
@@ -44,7 +44,7 @@ cmake --build build --config Release
 
 ---
 
-## 🚀 Running CVM++
+## Running CVM++
 
 You can run the executable in **REPL mode** or by supplying a `.cvm` **Script File**.
 
@@ -71,7 +71,7 @@ Pass your script sequentially! Included in `/tests/` are reference scripts like 
 
 ---
 
-## 🧩 The CVM++ Language
+## The CVM++ Language
 
 ### Overview
 
@@ -107,7 +107,7 @@ for (let i = 0; i < 10; i = i + 1) {
 
 ---
 
-## 🔬 Architecture Layers
+## Architecture Layers
 
 ```text
 [ Lexer ] ➔  [ Parser (AST) ]   ➔    [ Compiler ]    ➔     [ Virtual Machine ]
@@ -121,6 +121,6 @@ for (let i = 0; i < 10; i = i + 1) {
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more information.
