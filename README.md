@@ -61,11 +61,12 @@ Launch the `cvm` application without arguments to interact with the engine seque
 
 ### Script Execution Mode
 
-Pass your script sequentially! Included in `/tests/` are reference scripts like Fibonacci closures and scope bounds tests:
+Pass your script sequentially! Included in `/tests/` are reference scripts like Fibonacci closures, scope bounds tests, and loop-control examples:
 
 ```bash
 ./build/cvm tests/scope.cvm
 ./build/cvm tests/fibonacci.cvm
+./build/cvm tests/break_continue.cvm
 ```
 
 ---
@@ -78,7 +79,8 @@ A quick intro to the semantics governing execution logic internally:
 
 *   **Variables**: Defined organically with `let`. (Variables track values locally out to deep nested scopes natively).
 *   **Scopes**: Wrapped dynamically in brackets `{ }`.
-*   **Conditionals/Loops**: `if`, `else`, and `while`.
+*   **Conditionals/Loops**: `if`, `else`, `while`, and `for`.
+*   **Loop Control**: `break` and `continue` inside `while`/`for` loops.
 *   **IO Tools**: `print` evaluating expressions against standard streams. `input` bindings taking numeric streams dynamically.
 
 ### Operators Supported
@@ -92,13 +94,14 @@ A quick intro to the semantics governing execution logic internally:
 ### Code Example
 
 ```javascript
-let limit = 10;
-let x = 0;
-while (x < limit) {
-    if (x % 2 == 0) {
-        print x;
+for (let i = 0; i < 10; i = i + 1) {
+    if (i == 2) {
+        continue;
     }
-    x = x + 1;
+    if (i == 7) {
+        break;
+    }
+    print i;
 }
 ```
 
