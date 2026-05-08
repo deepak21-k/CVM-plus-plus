@@ -29,6 +29,8 @@ public:
     void visitIfStmt(IfStmt& stmt) override;
     void visitWhileStmt(WhileStmt& stmt) override;
     void visitForStmt(ForStmt& stmt) override;
+    void visitBreakStmt(BreakStmt& stmt) override;
+    void visitContinueStmt(ContinueStmt& stmt) override;
     void visitPrintStmt(PrintStmt& stmt) override;
 
 private:
@@ -45,4 +47,12 @@ private:
     int emitJmp(Opcode instruction);
     void patchJmp(int offsetIndex);
     void emitLoop(int loopStart);
+
+    struct LoopContext {
+        int loopStart = 0;                 // for backward continue (while)
+        bool continuePatchesToIncrement = false; // for forward continue (for)
+        std::vector<int> breakJumps;       // operand indices to patch to loop end
+        std::vector<int> continueJumps;    // operand indices to patch to increment start
+    };
+    std::vector<LoopContext> loopStack;
 };

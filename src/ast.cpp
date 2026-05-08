@@ -14,4 +14,6 @@ void LetStmt::accept(ASTVisitor& visitor) { visitor.visitLetStmt(*this); }
 void IfStmt::accept(ASTVisitor& visitor) { visitor.visitIfStmt(*this); }
 void WhileStmt::accept(ASTVisitor& visitor) { visitor.visitWhileStmt(*this); }
 void ForStmt::accept(ASTVisitor& visitor) { visitor.visitForStmt(*this); }
+void BreakStmt::accept(ASTVisitor& visitor) { visitor.visitBreakStmt(*this); }
+void ContinueStmt::accept(ASTVisitor& visitor) { visitor.visitContinueStmt(*this); }
 void PrintStmt::accept(ASTVisitor& visitor) { visitor.visitPrintStmt(*this); }

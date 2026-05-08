@@ -131,6 +131,16 @@ struct ForStmt : public Statement {
     void accept(ASTVisitor& visitor) override;
 };
 
+struct BreakStmt : public Statement {
+    BreakStmt() = default;
+    void accept(ASTVisitor& visitor) override;
+};
+
+struct ContinueStmt : public Statement {
+    ContinueStmt() = default;
+    void accept(ASTVisitor& visitor) override;
+};
+
 struct PrintStmt : public Statement {
     std::unique_ptr<Expression> expr;
 
@@ -155,5 +165,7 @@ public:
     virtual void visitIfStmt(IfStmt& stmt) = 0;
     virtual void visitWhileStmt(WhileStmt& stmt) = 0;
     virtual void visitForStmt(ForStmt& stmt) = 0;
+    virtual void visitBreakStmt(BreakStmt& stmt) = 0;
+    virtual void visitContinueStmt(ContinueStmt& stmt) = 0;
     virtual void visitPrintStmt(PrintStmt& stmt) = 0;
 };

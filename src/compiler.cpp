@@ -268,6 +268,11 @@ void Compiler::visitIfStmt(IfStmt& stmt) {
 }
 
 void Compiler::visitWhileStmt(WhileStmt& stmt) {
+    LoopContext ctx;
+    ctx.loopStart = static_cast<int>(chunk.code.size());
+    ctx.continuePatchesToIncrement = false;
+    loopStack.push_back(ctx);
+
     int loopStart = chunk.code.size();
     stmt.condition->accept(*this);
     
@@ -276,21 +281,38 @@ void Compiler::visitWhileStmt(WhileStmt& stmt) {
     
     emitLoop(loopStart);
     patchJmp(exitJmp);
+
+    // Patch any `break;` jumps to loop end.
+    for (int br : loopStack.back().breakJumps) {
+        patchJmp(br);
+    }
+    // `continue;` in while loops is emitted as a backward jump immediately.
+    loopStack.pop_back();
 }
 
 void Compiler::visitForStmt(ForStmt& stmt) {
     // Keep `let` variables inside the for-loop initializer scoped to the loop.
     beginScope();
 
+    LoopContext ctx;
+    ctx.continuePatchesToIncrement = true; // continue jumps forward to increment start
+    loopStack.push_back(ctx);
+
     if (stmt.initializer) {
         stmt.initializer->accept(*this);
     }
 
     int loopStart = chunk.code.size();
+    loopStack.back().loopStart = loopStart;
     stmt.condition->accept(*this);
     int exitJmp = emitJmp(Opcode::JMP_IF_FALSE);
 
     stmt.body->accept(*this);
+
+    // `continue;` inside the body should jump to the increment section (forward).
+    for (int cont : loopStack.back().continueJumps) {
+        patchJmp(cont);
+    }
 
     if (stmt.increment) {
         stmt.increment->accept(*this);
@@ -301,7 +323,34 @@ void Compiler::visitForStmt(ForStmt& stmt) {
     emitLoop(loopStart);
     patchJmp(exitJmp);
 
+    // Patch any `break;` jumps to loop end (after condition fails / after loop).
+    for (int br : loopStack.back().breakJumps) {
+        patchJmp(br);
+    }
+    loopStack.pop_back();
+
     endScope();
+}
+
+void Compiler::visitBreakStmt(BreakStmt&) {
+    if (loopStack.empty()) {
+        throw std::runtime_error("Cannot use 'break' outside of a loop");
+    }
+    int j = emitJmp(Opcode::JMP);
+    loopStack.back().breakJumps.push_back(j);
+}
+
+void Compiler::visitContinueStmt(ContinueStmt&) {
+    if (loopStack.empty()) {
+        throw std::runtime_error("Cannot use 'continue' outside of a loop");
+    }
+    LoopContext& ctx = loopStack.back();
+    if (ctx.continuePatchesToIncrement) {
+        int j = emitJmp(Opcode::JMP);
+        ctx.continueJumps.push_back(j);
+    } else {
+        emitLoop(ctx.loopStart);
+    }
 }
 
 void Compiler::visitPrintStmt(PrintStmt& stmt) {

@@ -4,7 +4,7 @@
 
 enum class TokenType {
     // Keywords
-    LET, IF, ELSE, WHILE, FOR, PRINT, INPUT, TRUE_LIT, FALSE_LIT,
+    LET, IF, ELSE, WHILE, FOR, BREAK, CONTINUE, PRINT, INPUT, TRUE_LIT, FALSE_LIT,
 
     // Operators
     PLUS, MINUS, STAR, SLASH, MOD,

@@ -33,6 +33,8 @@ private:
     std::unique_ptr<Statement> ifStatement();
     std::unique_ptr<Statement> forStatement();
     std::unique_ptr<Statement> whileStatement();
+    std::unique_ptr<Statement> breakStatement();
+    std::unique_ptr<Statement> continueStatement();
     std::unique_ptr<Statement> printStatement();
     std::unique_ptr<Statement> blockStatement();
     std::unique_ptr<Statement> expressionStatement();

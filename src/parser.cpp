@@ -61,6 +61,8 @@ void Parser::synchronize() {
             case TokenType::IF:
             case TokenType::FOR:
             case TokenType::WHILE:
+            case TokenType::BREAK:
+            case TokenType::CONTINUE:
             case TokenType::PRINT:
                 return;
             default:
@@ -97,6 +99,8 @@ std::unique_ptr<Statement> Parser::statement() {
     if (match({TokenType::PRINT})) return printStatement();
     if (match({TokenType::FOR})) return forStatement();
     if (match({TokenType::WHILE})) return whileStatement();
+    if (match({TokenType::BREAK})) return breakStatement();
+    if (match({TokenType::CONTINUE})) return continueStatement();
     if (match({TokenType::LBRACE})) return blockStatement();
     return expressionStatement();
 }
@@ -145,6 +149,16 @@ std::unique_ptr<Statement> Parser::forStatement() {
 
     std::unique_ptr<Statement> body = statement();
     return std::make_unique<ForStmt>(std::move(initializer), std::move(condition), std::move(increment), std::move(body));
+}
+
+std::unique_ptr<Statement> Parser::breakStatement() {
+    consume(TokenType::SEMICOLON, "Expect ';' after 'break'.");
+    return std::make_unique<BreakStmt>();
+}
+
+std::unique_ptr<Statement> Parser::continueStatement() {
+    consume(TokenType::SEMICOLON, "Expect ';' after 'continue'.");
+    return std::make_unique<ContinueStmt>();
 }
 
 std::unique_ptr<Statement> Parser::printStatement() {

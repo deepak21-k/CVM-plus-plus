@@ -60,6 +60,8 @@ std::vector<Token> Lexer::tokenize() {
         {"else", TokenType::ELSE},
         {"while", TokenType::WHILE},
         {"for", TokenType::FOR},
+        {"break", TokenType::BREAK},
+        {"continue", TokenType::CONTINUE},
         {"print", TokenType::PRINT},
         {"input", TokenType::INPUT},
         {"true", TokenType::TRUE_LIT},
