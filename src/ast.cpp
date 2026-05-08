@@ -13,4 +13,5 @@ void ExpressionStmt::accept(ASTVisitor& visitor) { visitor.visitExpressionStmt(*
 void LetStmt::accept(ASTVisitor& visitor) { visitor.visitLetStmt(*this); }
 void IfStmt::accept(ASTVisitor& visitor) { visitor.visitIfStmt(*this); }
 void WhileStmt::accept(ASTVisitor& visitor) { visitor.visitWhileStmt(*this); }
+void ForStmt::accept(ASTVisitor& visitor) { visitor.visitForStmt(*this); }
 void PrintStmt::accept(ASTVisitor& visitor) { visitor.visitPrintStmt(*this); }

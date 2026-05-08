@@ -28,6 +28,7 @@ public:
     void visitLetStmt(LetStmt& stmt) override;
     void visitIfStmt(IfStmt& stmt) override;
     void visitWhileStmt(WhileStmt& stmt) override;
+    void visitForStmt(ForStmt& stmt) override;
     void visitPrintStmt(PrintStmt& stmt) override;
 
 private:

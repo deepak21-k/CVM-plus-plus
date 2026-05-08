@@ -278,6 +278,32 @@ void Compiler::visitWhileStmt(WhileStmt& stmt) {
     patchJmp(exitJmp);
 }
 
+void Compiler::visitForStmt(ForStmt& stmt) {
+    // Keep `let` variables inside the for-loop initializer scoped to the loop.
+    beginScope();
+
+    if (stmt.initializer) {
+        stmt.initializer->accept(*this);
+    }
+
+    int loopStart = chunk.code.size();
+    stmt.condition->accept(*this);
+    int exitJmp = emitJmp(Opcode::JMP_IF_FALSE);
+
+    stmt.body->accept(*this);
+
+    if (stmt.increment) {
+        stmt.increment->accept(*this);
+        // Increment is an expression (e.g. assignment) that may leave a value on the stack.
+        chunk.write(static_cast<uint8_t>(Opcode::POP));
+    }
+
+    emitLoop(loopStart);
+    patchJmp(exitJmp);
+
+    endScope();
+}
+
 void Compiler::visitPrintStmt(PrintStmt& stmt) {
     stmt.expr->accept(*this);
     chunk.write(static_cast<uint8_t>(Opcode::PRINT));

@@ -59,6 +59,7 @@ void Parser::synchronize() {
         switch (peek().type) {
             case TokenType::LET:
             case TokenType::IF:
+            case TokenType::FOR:
             case TokenType::WHILE:
             case TokenType::PRINT:
                 return;
@@ -94,6 +95,7 @@ std::unique_ptr<Statement> Parser::letDeclaration() {
 std::unique_ptr<Statement> Parser::statement() {
     if (match({TokenType::IF})) return ifStatement();
     if (match({TokenType::PRINT})) return printStatement();
+    if (match({TokenType::FOR})) return forStatement();
     if (match({TokenType::WHILE})) return whileStatement();
     if (match({TokenType::LBRACE})) return blockStatement();
     return expressionStatement();
@@ -121,6 +123,28 @@ std::unique_ptr<Statement> Parser::whileStatement() {
     std::unique_ptr<Statement> body = statement();
 
     return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+}
+
+std::unique_ptr<Statement> Parser::forStatement() {
+    consume(TokenType::LPAREN, "Expect '(' after 'for'.");
+
+    // for ( <initializer> ; <condition> ; <increment> ) <body>
+    // initializer can be either `let ...;` or any expression statement ending with `;`.
+    std::unique_ptr<Statement> initializer;
+    if (match({TokenType::LET})) {
+        initializer = letDeclaration();
+    } else {
+        initializer = expressionStatement(); // consumes trailing ';'
+    }
+
+    std::unique_ptr<Expression> condition = expression();
+    consume(TokenType::SEMICOLON, "Expect ';' after for condition.");
+
+    std::unique_ptr<Expression> increment = expression();
+    consume(TokenType::RPAREN, "Expect ')' after for clauses.");
+
+    std::unique_ptr<Statement> body = statement();
+    return std::make_unique<ForStmt>(std::move(initializer), std::move(condition), std::move(increment), std::move(body));
 }
 
 std::unique_ptr<Statement> Parser::printStatement() {

@@ -113,6 +113,24 @@ struct WhileStmt : public Statement {
     void accept(ASTVisitor& visitor) override;
 };
 
+struct ForStmt : public Statement {
+    // C-like: for (initializer ; condition ; increment) body
+    std::unique_ptr<Statement> initializer;
+    std::unique_ptr<Expression> condition;
+    std::unique_ptr<Expression> increment;
+    std::unique_ptr<Statement> body;
+
+    ForStmt(std::unique_ptr<Statement> initializer,
+            std::unique_ptr<Expression> condition,
+            std::unique_ptr<Expression> increment,
+            std::unique_ptr<Statement> body)
+        : initializer(std::move(initializer)),
+          condition(std::move(condition)),
+          increment(std::move(increment)),
+          body(std::move(body)) {}
+    void accept(ASTVisitor& visitor) override;
+};
+
 struct PrintStmt : public Statement {
     std::unique_ptr<Expression> expr;
 
@@ -136,5 +154,6 @@ public:
     virtual void visitLetStmt(LetStmt& stmt) = 0;
     virtual void visitIfStmt(IfStmt& stmt) = 0;
     virtual void visitWhileStmt(WhileStmt& stmt) = 0;
+    virtual void visitForStmt(ForStmt& stmt) = 0;
     virtual void visitPrintStmt(PrintStmt& stmt) = 0;
 };
