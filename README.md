@@ -1,127 +1,221 @@
 # CVM++
 
-**CVM++** is a high-performance, stack-based Virtual Machine and Compiler engineered entirely from scratch in modern C++. It's designed to be a robust, memory-safe, and blazingly fast execution engine.
+**CVM++** is a high-performance, stack-based virtual machine and compiler written from scratch in modern C++17. It features a complete pipeline — lexer, recursive-descent parser, single-pass compiler with constant folding, and a bytecode VM with strict runtime safety guarantees.
 
-Featuring strict architectural protections, CVM++ executes custom typed instructions securely—handling lexical block scoping, runtime boundary mitigations, constant folding optimizations, and standard execution operations smoothly.
+[![CI](https://github.com/yourusername/CVM_PlusPlus/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/CVM_PlusPlus/actions/workflows/ci.yml)
 
-## Key Features
+## Features
 
-*   **Custom Stack-Based VM**: Clean `size_t` instruction pointer execution block, wrapping Two's Complement architectures naturally.
-*   **Single-Pass Compiler Pipeline**: Translates AST chunks linearly into tightly packed `std::vector<uint8_t>` executable bytecode dynamically!
-*   **Deep Block Scoping**: Deep-mapped variable shadowing and block scope bindings. Nested scopes clean up sequentially, dropping variable collisions gracefully.
-*   **Compiler Optimization Layer**: 
-    *   Dynamic **Constant Folding** recursively reducing binary footprint structures drastically.
-    *   **Short-Circuiting** logical operand evaluators (`&&`, `||`) reducing trace overhead.
-*   **Secure & Hardened Run-time**:
-    *   Integer boundaries trap native `<cstdint>` overflows explicitly resolving division drops without bounds-crashing!
-    *   Lexical syntax parsing failures trace recursive scopes natively discarding memory leaks cleanly.
-    *   Undefined Behavior (UB) mitigated deeply through execution verification limits.
-*   **Interactive REPL Layer**: Build code, drop blocks, execute line-by-line dynamically tracking states!
+- **Stack-Based VM** — Executes tightly packed bytecode with bounded stack operations and runtime overflow/underflow protection.
+- **Single-Pass Compiler** — Translates the AST directly into `std::vector<uint8_t>` bytecode in one linear pass.
+- **Constant Folding** — Binary, unary, and logical expressions on literal operands are evaluated at compile time, eliminating runtime overhead.
+- **Deep Block Scoping** — Full lexical scoping with variable shadowing. Nested scopes clean up automatically on exit.
+- **Short-Circuit Evaluation** — `&&` and `||` skip the right operand when the result is already determined.
+- **Bytecode Disassembler** — Human-readable bytecode dump via `--dump` flag or REPL `disasm on` command.
+- **Interactive REPL** — Execute code line-by-line with full error recovery (compiler + VM state reset on error).
+- **Portable Arithmetic** — Right shifts on negative integers use explicit sign-bit replication, avoiding implementation-defined C++ behavior.
+- **Zero RTTI** — AST node identification uses a compile-time `NodeType` enum instead of `dynamic_cast`, enabling builds with `-fno-rtti`.
 
 ---
 
-## Building the Project
+## Building
 
 ### Prerequisites
 
-*   A C++14 (or newer) compatible compiler (GCC, Clang, or MSVC).
-*   CMake 3.10+
+- A **C++17** compatible compiler (GCC 7+, Clang 5+, or MSVC 2017+)
+- **CMake 3.10+**
 
 ### Build Instructions
-
-You can build CVM++ directly using **CMake**:
 
 ```bash
 git clone https://github.com/yourusername/CVM_PlusPlus.git
 cd CVM_PlusPlus
 
-# Create Build Directory and configure
 cmake -B build -DCMAKE_BUILD_TYPE=Release
-
-# Compile target executable
 cmake --build build --config Release
 ```
 
 ---
 
-## Running CVM++
-
-You can run the executable in **REPL mode** or by supplying a `.cvm` **Script File**.
+## Usage
 
 ### REPL Mode
 
-Launch the `cvm` application without arguments to interact with the engine sequentially:
+Launch without arguments for an interactive session:
 
 ```bash
 ./build/cvm
 > let x = 10;
 > if (x > 5) { print x * 20; }
 200
+> disasm on
+Bytecode disassembly enabled.
+> print 1 + 2;
+== Compiled Bytecode ==
+0000  PUSH_INT        3
+0005  PRINT
+0006  HALT
+3
 ```
 
-### Script Execution Mode
+**REPL commands:**
 
-Pass your script sequentially! Included in `/tests/` are reference scripts like Fibonacci closures, scope bounds tests, and loop-control examples:
+| Command       | Description                        |
+| :------------ | :--------------------------------- |
+| `exit`/`quit` | Exit the REPL                      |
+| `disasm on`   | Enable bytecode disassembly output |
+| `disasm off`  | Disable bytecode disassembly       |
+
+### Script Execution
 
 ```bash
-./build/cvm tests/scope.cvm
 ./build/cvm tests/fibonacci.cvm
+./build/cvm tests/scope.cvm
 ./build/cvm tests/break_continue.cvm
 ```
 
+### Bytecode Dump
+
+Use `--dump` to print the compiled bytecode before execution:
+
+```bash
+./build/cvm --dump tests/fibonacci.cvm
+```
+
 ---
 
-## The CVM++ Language
+## Language Reference
 
-### Overview
-
-A quick intro to the semantics governing execution logic internally:
-
-*   **Variables**: Defined organically with `let`. (Variables track values locally out to deep nested scopes natively).
-*   **Scopes**: Wrapped dynamically in brackets `{ }`.
-*   **Conditionals/Loops**: `if`, `else`, `while`, and `for`.
-*   **Loop Control**: `break` and `continue` inside `while`/`for` loops.
-*   **IO Tools**: `print` evaluating expressions against standard streams. `input` bindings taking numeric streams dynamically.
-
-### Operators Supported
-
-| Type | Operators |
-| :--- | :--- |
-| **Arithmetic** | `+`, `-`, `*`, `/`, `%` |
-| **Update** | `++`, `--` |
-| **Logic/Boolean** | `&&`, `\|\|`, `!`, `==`, `!=`, `<`, `>`, `<=`, `>=` |
-| **Bitwise** | `&`, `\|`, `^`, `<<`, `>>`, `~` |
-
-### Code Example
+### Variables & Scoping
 
 ```javascript
-for (let i = 0; i < 10; i = i + 1) {
-    if (i == 2) {
-        continue;
-    }
-    if (i == 7) {
-        break;
-    }
+let x = 42;
+{
+    let x = 100;    // shadows outer x
+    print x;        // 100
+}
+print x;            // 42
+```
+
+### Control Flow
+
+```javascript
+if (x > 0) {
+    print x;
+} else {
+    print -x;
+}
+
+while (x > 0) {
+    x--;
+}
+
+for (let i = 0; i < 10; i++) {
+    if (i == 5) continue;
+    if (i == 8) break;
     print i;
+}
+
+// Empty clauses are valid
+for (;;) {
+    if (done) break;
 }
 ```
 
----
+### Operators
 
-## Architecture Layers
+| Category       | Operators                                  |
+| :------------- | :----------------------------------------- |
+| **Arithmetic** | `+` `-` `*` `/` `%`                       |
+| **Unary**      | `-` (negate) `+` (identity) `!` `~`       |
+| **Update**     | `++` `--` (prefix and postfix)             |
+| **Comparison** | `==` `!=` `<` `>` `<=` `>=`               |
+| **Logical**    | `&&` `\|\|` `!`                            |
+| **Bitwise**    | `&` `\|` `^` `<<` `>>` `~`               |
 
-```text
-[ Lexer ] ➔  [ Parser (AST) ]   ➔    [ Compiler ]    ➔     [ Virtual Machine ]
-  (Text)       (Syntax Tree)      (Bytecode Chunks)        (Stack Execution)
+### Numeric Literals
+
+```javascript
+let dec = 255;
+let hex = 0xFF;      // hexadecimal
+let bin = 0b11111111; // binary
+let oct = 0o377;     // octal
 ```
 
-1.  **Lexer/Scanner**: Implements highly optimized static String referencing traversing source text natively into atomic `Token` sets dynamically safely parsing constraints without memory bloating allocations. 
-2.  **Parser**: Standard Recursive Descent / Pratt architecture generating securely integrated AST implementations securely isolating block syntax.
-3.  **Compiler**: Emits nested bytecode chunks iteratively routing logic bindings tracking variable allocations cleanly isolated internally across native pools via `std::vector` mapping!
-4.  **Virtual Machine**: Master interpreter loop bounds-checking execution tracing directly returning safe outputs trapping exceptions natively.
+### Comments
+
+```javascript
+// Single-line comment
+
+/* Multi-line
+   block comment */
+```
+
+### I/O
+
+```javascript
+print 42;           // output: 42
+let x = input;      // reads an integer from stdin
+```
+
+---
+
+## Architecture
+
+```
+Source Code
+    │
+    ▼
+┌─────────┐     ┌──────────────┐     ┌────────────┐     ┌─────────────────┐
+│  Lexer   │ ──▶ │    Parser    │ ──▶ │  Compiler   │ ──▶ │ Virtual Machine │
+│ (Tokens) │     │ (AST Nodes)  │     │ (Bytecode)  │     │ (Stack Engine)  │
+└─────────┘     └──────────────┘     └────────────┘     └─────────────────┘
+                                           │
+                                           ▼
+                                     ┌────────────┐
+                                     │ Disassembler│ (optional --dump)
+                                     └────────────┘
+```
+
+| Layer          | Description                                                                                           |
+| :------------- | :---------------------------------------------------------------------------------------------------- |
+| **Lexer**      | Tokenizes source text into typed `Token` objects. Supports single-line and block comments, hex/bin/oct literals. |
+| **Parser**     | Recursive-descent parser producing a typed AST. Uses `NodeType` enum for O(1) node identification.    |
+| **Compiler**   | Single-pass AST visitor emitting bytecode. Performs constant folding (binary, unary, logical) and short-circuit evaluation. |
+| **VM**         | Stack-based interpreter with bounded operations, portable arithmetic shifts, and runtime error trapping. |
+| **Disassembler** | Pretty-prints bytecode with opcodes, operands, and absolute jump targets.                           |
+
+---
+
+## Tests
+
+The `tests/` directory contains regression and feature tests:
+
+| Test File                | Coverage                                      |
+| :----------------------- | :--------------------------------------------- |
+| `fibonacci.cvm`          | Loops, variables, arithmetic                   |
+| `scope.cvm`              | Block scoping, variable shadowing              |
+| `break_continue.cvm`     | Loop control flow                              |
+| `inc_dec.cvm`            | Prefix/postfix increment and decrement         |
+| `b1_int32min.cvm`        | INT32_MIN literal representation               |
+| `b2_right_shift.cvm`     | Portable arithmetic right shift                |
+| `b3_unary_plus.cvm`      | Unary plus operator                            |
+| `b6_unary_folding.cvm`   | Compile-time unary constant folding            |
+| `o2_logical_folding.cvm` | Logical expression constant folding            |
+| `phase3_features.cvm`    | Block comments, hex/bin/oct, empty `for(;;)`   |
+
+Run all tests:
+
+```bash
+# Linux/macOS
+for f in tests/*.cvm; do echo "=== $f ===" && ./build/cvm "$f"; done
+
+# Windows (PowerShell)
+Get-ChildItem .\tests\*.cvm | ForEach-Object { Write-Host "=== $($_.Name) ===" ; .\build\cvm.exe $_.FullName }
+```
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more information.
+This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
