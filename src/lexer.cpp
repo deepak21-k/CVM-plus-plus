@@ -37,8 +37,20 @@ void Lexer::skipWhitespace() {
         if (c == ' ' || c == '\r' || c == '\t' || c == '\n') {
             advance();
         } else if (c == '/' && peekNext() == '/') {
-            // Comment
+            // Single-line comment
             while (!isAtEnd() && peek() != '\n') {
+                advance();
+            }
+        } else if (c == '/' && peekNext() == '*') {
+            // Block comment (non-nesting, matching C behavior)
+            advance(); // skip '/'
+            advance(); // skip '*'
+            while (!isAtEnd()) {
+                if (peek() == '*' && peekNext() == '/') {
+                    advance(); // skip '*'
+                    advance(); // skip '/'
+                    break;
+                }
                 advance();
             }
         } else {
@@ -53,6 +65,7 @@ Token Lexer::createToken(TokenType type, const std::string& value) {
 
 std::vector<Token> Lexer::tokenize() {
     std::vector<Token> tokens;
+    tokens.reserve(source.length() / 8 + 1);  // ~8 chars/token average
     
     static const std::unordered_map<std::string, TokenType> keywords = {
         {"let", TokenType::LET},
@@ -90,6 +103,38 @@ std::vector<Token> Lexer::tokenize() {
         }
 
         if (std::isdigit(c)) {
+            // I2: Support 0x (hex), 0b (binary), 0o (octal) prefixes
+            if (c == '0' && !isAtEnd()) {
+                char next = peekNext();
+                if (next == 'x' || next == 'X') {
+                    advance(); advance(); // skip '0x'
+                    std::string hex;
+                    while (!isAtEnd() && std::isxdigit(static_cast<unsigned char>(peek()))) hex += advance();
+                    if (hex.empty()) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Expected hex digits after '0x'");
+                    long long val = std::stoll(hex, nullptr, 16);
+                    if (val > INT32_MAX) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Hex literal out of int32 range");
+                    tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
+                    continue;
+                } else if (next == 'b' || next == 'B') {
+                    advance(); advance(); // skip '0b'
+                    std::string bin;
+                    while (!isAtEnd() && (peek() == '0' || peek() == '1')) bin += advance();
+                    if (bin.empty()) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Expected binary digits after '0b'");
+                    long long val = std::stoll(bin, nullptr, 2);
+                    if (val > INT32_MAX) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Binary literal out of int32 range");
+                    tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
+                    continue;
+                } else if (next == 'o' || next == 'O') {
+                    advance(); advance(); // skip '0o'
+                    std::string oct;
+                    while (!isAtEnd() && peek() >= '0' && peek() <= '7') oct += advance();
+                    if (oct.empty()) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Expected octal digits after '0o'");
+                    long long val = std::stoll(oct, nullptr, 8);
+                    if (val > INT32_MAX) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Octal literal out of int32 range");
+                    tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
+                    continue;
+                }
+            }
             std::string num;
             num.reserve(16);
             while (!isAtEnd() && std::isdigit(peek())) {

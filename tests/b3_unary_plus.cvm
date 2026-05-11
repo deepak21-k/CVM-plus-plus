@@ -1,0 +1,13 @@
+// B3: Unary plus operator
+let x = +5;
+print x;
+// Expected: 5
+
+let y = +0;
+print y;
+// Expected: 0
+
+let z = 10;
+let w = +z;
+print w;
+// Expected: 10

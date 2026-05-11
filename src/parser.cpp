@@ -1,7 +1,7 @@
 #include "parser.h"
 #include <iostream>
 
-Parser::Parser(const std::vector<Token>& tokens) : tokens(tokens), current(0) {}
+Parser::Parser(const std::vector<Token>& tokens_) : tokens(tokens_), current(0) {}
 
 std::vector<std::unique_ptr<Statement>> Parser::parse() {
     std::vector<std::unique_ptr<Statement>> statements;
@@ -135,16 +135,24 @@ std::unique_ptr<Statement> Parser::forStatement() {
     // for ( <initializer> ; <condition> ; <increment> ) <body>
     // initializer can be either `let ...;` or any expression statement ending with `;`.
     std::unique_ptr<Statement> initializer;
-    if (match({TokenType::LET})) {
+    if (match({TokenType::SEMICOLON})) {
+        initializer = nullptr;
+    } else if (match({TokenType::LET})) {
         initializer = letDeclaration();
     } else {
         initializer = expressionStatement(); // consumes trailing ';'
     }
 
-    std::unique_ptr<Expression> condition = expression();
+    std::unique_ptr<Expression> condition;
+    if (!check(TokenType::SEMICOLON)) {
+        condition = expression();
+    }
     consume(TokenType::SEMICOLON, "Expect ';' after for condition.");
 
-    std::unique_ptr<Expression> increment = expression();
+    std::unique_ptr<Expression> increment;
+    if (!check(TokenType::RPAREN)) {
+        increment = expression();
+    }
     consume(TokenType::RPAREN, "Expect ')' after for clauses.");
 
     std::unique_ptr<Statement> body = statement();
@@ -195,7 +203,8 @@ std::unique_ptr<Expression> Parser::assignment() {
     if (match({TokenType::EQUAL})) {
         std::unique_ptr<Expression> value = assignment();
 
-        if (auto* varExpr = dynamic_cast<VariableExpr*>(expr.get())) {
+        if (expr->nodeType == NodeType::VariableExpr) {
+            auto* varExpr = static_cast<VariableExpr*>(expr.get());
             Token name = varExpr->name;
             return std::make_unique<AssignExpr>(std::move(name), std::move(value));
         }
@@ -310,14 +319,14 @@ std::unique_ptr<Expression> Parser::unary() {
     if (match({TokenType::PLUS_PLUS, TokenType::MINUS_MINUS})) {
         Token op = previous();
         std::unique_ptr<Expression> right = unary();
-        auto* varExpr = dynamic_cast<VariableExpr*>(right.get());
-        if (!varExpr) {
+        if (right->nodeType != NodeType::VariableExpr) {
             throw std::runtime_error("Parser Error [" + std::to_string(op.line) + "]: Prefix update requires a variable.");
         }
+        auto* varExpr = static_cast<VariableExpr*>(right.get());
         Token name = varExpr->name;
         return std::make_unique<UpdateExpr>(std::move(name), op.type == TokenType::PLUS_PLUS, true);
     }
-    if (match({TokenType::MINUS, TokenType::BIT_NOT, TokenType::NOT})) {
+    if (match({TokenType::PLUS, TokenType::MINUS, TokenType::BIT_NOT, TokenType::NOT})) {
         Token op = previous();
         std::unique_ptr<Expression> right = unary();
         return std::make_unique<UnaryExpr>(std::move(op), std::move(right));
@@ -329,10 +338,10 @@ std::unique_ptr<Expression> Parser::postfix() {
     std::unique_ptr<Expression> expr = primary();
     while (match({TokenType::PLUS_PLUS, TokenType::MINUS_MINUS})) {
         Token op = previous();
-        auto* varExpr = dynamic_cast<VariableExpr*>(expr.get());
-        if (!varExpr) {
+        if (expr->nodeType != NodeType::VariableExpr) {
             throw std::runtime_error("Parser Error [" + std::to_string(op.line) + "]: Postfix update requires a variable.");
         }
+        auto* varExpr = static_cast<VariableExpr*>(expr.get());
         Token name = varExpr->name;
         expr = std::make_unique<UpdateExpr>(std::move(name), op.type == TokenType::PLUS_PLUS, false);
     }

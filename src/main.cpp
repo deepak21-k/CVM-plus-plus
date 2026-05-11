@@ -2,9 +2,11 @@
 #include "parser.h"
 #include "compiler.h"
 #include "vm.h"
+#include "disasm.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
+bool dumpBytecode = false;
 
 void run(const std::string& source, Compiler& compiler, VM& vm) {
     try {
@@ -16,10 +18,15 @@ void run(const std::string& source, Compiler& compiler, VM& vm) {
 
         Chunk chunk = compiler.compile(statements);
 
+        if (dumpBytecode) {
+            disassembleChunk(chunk, "Compiled Bytecode");
+        }
+
         vm.execute(chunk);
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << '\n';
-        compiler = Compiler(); // Clean up corrupted REPL depths implicitly
+        compiler = Compiler();
+        vm = VM();  // Reset VM globals to stay in sync with compiler
     }
 }
 
@@ -32,6 +39,16 @@ void repl() {
         std::cout << "> ";
         if (!std::getline(std::cin, line)) break;
         if (line == "exit" || line == "quit") break;
+        if (line == "disasm on") {
+            dumpBytecode = true;
+            std::cout << "Bytecode disassembly enabled.\n";
+            continue;
+        }
+        if (line == "disasm off") {
+            dumpBytecode = false;
+            std::cout << "Bytecode disassembly disabled.\n";
+            continue;
+        }
         if (line.empty()) continue;
         
         run(line, compiler, vm);
@@ -54,11 +71,21 @@ void runFile(const std::string& path) {
 int main(int argc, char* argv[]) {
     if (argc == 1) {
         repl();
-    } else if (argc == 2) {
-        runFile(argv[1]);
     } else {
-        std::cerr << "Usage: cvm [path to script]\n";
-        return 1;
+        std::string path;
+        for (int i = 1; i < argc; i++) {
+            std::string arg = argv[i];
+            if (arg == "--dump") {
+                dumpBytecode = true;
+            } else {
+                path = arg;
+            }
+        }
+        if (path.empty()) {
+            std::cerr << "Usage: cvm [--dump] [path to script]\n";
+            return 1;
+        }
+        runFile(path);
     }
     return 0;
 }

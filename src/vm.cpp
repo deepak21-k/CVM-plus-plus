@@ -144,7 +144,14 @@ void VM::execute(const Chunk& chunk) {
                 int32_t b = pop();
                 int32_t a = pop();
                 if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
-                push(a >> b);
+                // Portable arithmetic right shift: replicate sign bit into vacated positions
+                uint32_t ua = static_cast<uint32_t>(a);
+                uint32_t shifted = ua >> b;
+                if (a < 0 && b > 0) {
+                    uint32_t mask = ~(UINT32_MAX >> b);
+                    shifted |= mask;
+                }
+                push(static_cast<int32_t>(shifted));
                 break;
             }
             case Opcode::BIT_NOT: {

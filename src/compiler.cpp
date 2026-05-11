@@ -72,9 +72,10 @@ void Compiler::emitLoop(int loopStart) {
 }
 
 void Compiler::visitBinaryExpr(BinaryExpr& expr) {
-    if (auto* leftLit = dynamic_cast<LiteralExpr*>(expr.left.get())) {
-        if (auto* rightLit = dynamic_cast<LiteralExpr*>(expr.right.get())) {
-            if (leftLit->value.type == TokenType::NUMBER && rightLit->value.type == TokenType::NUMBER) {
+    if (expr.left->nodeType == NodeType::LiteralExpr && expr.right->nodeType == NodeType::LiteralExpr) {
+        auto* leftLit = static_cast<LiteralExpr*>(expr.left.get());
+        auto* rightLit = static_cast<LiteralExpr*>(expr.right.get());
+        if (leftLit->value.type == TokenType::NUMBER && rightLit->value.type == TokenType::NUMBER) {
                 int32_t a = std::stoi(leftLit->value.value);
                 int32_t b = std::stoi(rightLit->value.value);
                 int64_t result;
@@ -96,9 +97,19 @@ void Compiler::visitBinaryExpr(BinaryExpr& expr) {
                     case TokenType::SHL:     
                         if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
                         result = static_cast<int32_t>(static_cast<uint32_t>(a) << b); break;
-                    case TokenType::SHR:     
+                    case TokenType::SHR:
                         if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
-                        result = a >> b; break;
+                        {
+                            // Portable arithmetic right shift: replicate sign bit
+                            uint32_t ua = static_cast<uint32_t>(a);
+                            uint32_t shifted = ua >> b;
+                            if (a < 0 && b > 0) {
+                                uint32_t mask = ~(UINT32_MAX >> b);
+                                shifted |= mask;
+                            }
+                            result = static_cast<int32_t>(shifted);
+                        }
+                        break;
                     case TokenType::EQ_EQ:   result = (a == b) ? 1 : 0; break;
                     case TokenType::BANG_EQ: result = (a != b) ? 1 : 0; break;
                     case TokenType::LESS:    result = (a < b)  ? 1 : 0; break;
@@ -111,7 +122,6 @@ void Compiler::visitBinaryExpr(BinaryExpr& expr) {
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(static_cast<int32_t>(result));
                 return;
-            }
         }
     }
 no_fold:
@@ -140,6 +150,34 @@ no_fold:
 }
 
 void Compiler::visitLogicalExpr(LogicalExpr& expr) {
+    // --- O2: Constant folding for logical expressions with literal operands ---
+    if (expr.left->nodeType == NodeType::LiteralExpr && expr.right->nodeType == NodeType::LiteralExpr) {
+        auto* leftLit = static_cast<LiteralExpr*>(expr.left.get());
+        auto* rightLit = static_cast<LiteralExpr*>(expr.right.get());
+        auto toBool = [](const LiteralExpr* lit) -> int {
+            if (lit->value.type == TokenType::TRUE_LIT) return 1;
+            if (lit->value.type == TokenType::FALSE_LIT) return 0;
+            if (lit->value.type == TokenType::NUMBER) {
+                try { return std::stoi(lit->value.value) != 0 ? 1 : 0; }
+                catch (...) { return -1; }
+            }
+            return -1;
+        };
+        int lv = toBool(leftLit);
+        int rv = toBool(rightLit);
+        if (lv >= 0 && rv >= 0) {
+            int result;
+            if (expr.op.type == TokenType::AND_AND) {
+                result = (lv && rv) ? 1 : 0;
+            } else {
+                result = (lv || rv) ? 1 : 0;
+            }
+            chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+            chunk.writeInt(result);
+            return;
+        }
+    }
+
     expr.left->accept(*this);
     
     if (expr.op.type == TokenType::AND_AND) {
@@ -172,6 +210,52 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
 }
 
 void Compiler::visitUnaryExpr(UnaryExpr& expr) {
+    // --- Constant folding for literal operands ---
+    if (expr.right->nodeType == NodeType::LiteralExpr) {
+        auto* lit = static_cast<LiteralExpr*>(expr.right.get());
+        if (lit->value.type == TokenType::NUMBER) {
+            long long val;
+            try { val = std::stoll(lit->value.value); }
+            catch (...) { goto runtime; }
+
+            if (expr.op.type == TokenType::MINUS) {
+                long long result = -val;
+                if (result > INT32_MAX || result < INT32_MIN)
+                    throw std::runtime_error("Integer overflow in constant negation");
+                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+                chunk.writeInt(static_cast<int32_t>(result));
+                return;
+            } else if (expr.op.type == TokenType::BIT_NOT) {
+                if (val > INT32_MAX || val < INT32_MIN)
+                    throw std::runtime_error("Integer literal out of range");
+                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+                chunk.writeInt(~static_cast<int32_t>(val));
+                return;
+            } else if (expr.op.type == TokenType::NOT) {
+                if (val > INT32_MAX || val < INT32_MIN)
+                    throw std::runtime_error("Integer literal out of range");
+                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+                chunk.writeInt(val == 0 ? 1 : 0);
+                return;
+            } else if (expr.op.type == TokenType::PLUS) {
+                if (val > INT32_MAX || val < INT32_MIN)
+                    throw std::runtime_error("Integer literal out of range");
+                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+                chunk.writeInt(static_cast<int32_t>(val));
+                return;
+            }
+        }
+        if (lit->value.type == TokenType::TRUE_LIT || lit->value.type == TokenType::FALSE_LIT) {
+            int32_t boolVal = (lit->value.type == TokenType::TRUE_LIT) ? 1 : 0;
+            if (expr.op.type == TokenType::NOT) {
+                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
+                chunk.writeInt(boolVal == 0 ? 1 : 0);
+                return;
+            }
+        }
+    }
+    // --- Runtime evaluation for non-literal operands ---
+runtime:
     expr.right->accept(*this);
     if (expr.op.type == TokenType::BIT_NOT) {
         chunk.write(static_cast<uint8_t>(Opcode::BIT_NOT));
@@ -179,6 +263,8 @@ void Compiler::visitUnaryExpr(UnaryExpr& expr) {
         chunk.write(static_cast<uint8_t>(Opcode::NOT));
     } else if (expr.op.type == TokenType::MINUS) {
         chunk.write(static_cast<uint8_t>(Opcode::NEG));
+    } else if (expr.op.type == TokenType::PLUS) {
+        // Unary plus is a no-op — value is already on the stack
     } else {
         throw std::runtime_error("Unknown unary operator");
     }
@@ -260,6 +346,9 @@ void Compiler::visitBlockStmt(BlockStmt& stmt) {
 }
 
 void Compiler::visitExpressionStmt(ExpressionStmt& stmt) {
+    // O3 simplified: skip compilation for literal-only expression statements
+    // (no side effects, result is immediately discarded)
+    if (stmt.expr->nodeType == NodeType::LiteralExpr) return;
     stmt.expr->accept(*this);
     chunk.write(static_cast<uint8_t>(Opcode::POP)); 
 }
@@ -329,8 +418,12 @@ void Compiler::visitForStmt(ForStmt& stmt) {
 
     int loopStart = chunk.code.size();
     loopStack.back().loopStart = loopStart;
-    stmt.condition->accept(*this);
-    int exitJmp = emitJmp(Opcode::JMP_IF_FALSE);
+    
+    int exitJmp = -1;
+    if (stmt.condition) {
+        stmt.condition->accept(*this);
+        exitJmp = emitJmp(Opcode::JMP_IF_FALSE);
+    }
 
     stmt.body->accept(*this);
 
@@ -341,12 +434,17 @@ void Compiler::visitForStmt(ForStmt& stmt) {
 
     if (stmt.increment) {
         stmt.increment->accept(*this);
-        // Increment is an expression (e.g. assignment) that may leave a value on the stack.
+        // INVARIANT: All valid increment expressions (assignments, ++/-- updates,
+        // binary ops, literals) push exactly one value onto the stack. This POP
+        // discards that unused result. If new expression types are added that
+        // don't push a value, this must be revisited.
         chunk.write(static_cast<uint8_t>(Opcode::POP));
     }
 
     emitLoop(loopStart);
-    patchJmp(exitJmp);
+    if (exitJmp != -1) {
+        patchJmp(exitJmp);
+    }
 
     // Patch any `break;` jumps to loop end (after condition fails / after loop).
     for (int br : loopStack.back().breakJumps) {
