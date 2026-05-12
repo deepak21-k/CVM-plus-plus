@@ -164,28 +164,29 @@ let x = input;      // reads an integer from stdin
 
 ## Architecture
 
-```
-Source Code
-    │
-    ▼
-┌─────────┐     ┌──────────────┐     ┌────────────┐     ┌─────────────────┐
-│  Lexer   │ ──▶ │    Parser    │ ──▶ │  Compiler   │ ──▶ │ Virtual Machine │
-│ (Tokens) │     │ (AST Nodes)  │     │ (Bytecode)  │     │ (Stack Engine)  │
-└─────────┘     └──────────────┘     └────────────┘     └─────────────────┘
-                                           │
-                                           ▼
-                                     ┌────────────┐
-                                     │ Disassembler│ (optional --dump)
-                                     └────────────┘
+```mermaid
+flowchart LR
+    A["📄 Source Code"] --> B["🔤 Lexer"]
+    B -- "Tokens" --> C["🌳 Parser"]
+    C -- "AST" --> D["⚙️ Compiler"]
+    D -- "Bytecode" --> E["🖥️ Virtual Machine"]
+    D -. "--dump" .-> F["🔍 Disassembler"]
+
+    style A fill:#2d2d2d,stroke:#7c3aed,color:#e2e8f0
+    style B fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style C fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style D fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style E fill:#064e3b,stroke:#10b981,color:#e2e8f0
+    style F fill:#44403c,stroke:#a8a29e,color:#e2e8f0,stroke-dasharray: 5 5
 ```
 
-| Layer          | Description                                                                                           |
-| :------------- | :---------------------------------------------------------------------------------------------------- |
-| **Lexer**      | Tokenizes source text into typed `Token` objects. Supports single-line and block comments, hex/bin/oct literals. |
-| **Parser**     | Recursive-descent parser producing a typed AST. Uses `NodeType` enum for O(1) node identification.    |
-| **Compiler**   | Single-pass AST visitor emitting bytecode. Performs constant folding (binary, unary, logical) and short-circuit evaluation. |
-| **VM**         | Stack-based interpreter with bounded operations, portable arithmetic shifts, and runtime error trapping. |
-| **Disassembler** | Pretty-prints bytecode with opcodes, operands, and absolute jump targets.                           |
+| Layer            | File(s)                  | Description                                                                                         |
+| :--------------- | :----------------------- | :-------------------------------------------------------------------------------------------------- |
+| **Lexer**        | `lexer.cpp` `lexer.h`   | Tokenizes source text. Handles single-line/block comments, hex/binary/octal literals, and keywords. |
+| **Parser**       | `parser.cpp` `parser.h` | Recursive-descent parser producing a typed AST. Uses `NodeType` enum for O(1) node identification.  |
+| **Compiler**     | `compiler.cpp` `compiler.h` | Single-pass AST visitor emitting bytecode. Constant folding (binary, unary, logical) and short-circuit evaluation. |
+| **VM**           | `vm.cpp` `vm.h`         | Stack-based interpreter with bounded operations, portable arithmetic shifts, and runtime error trapping. |
+| **Disassembler** | `disasm.cpp` `disasm.h` | Pretty-prints bytecode with opcodes, operands, and absolute jump targets.                           |
 
 ---
 
