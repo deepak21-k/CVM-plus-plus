@@ -57,11 +57,11 @@ void Compiler::endScope() {
 int Compiler::emitJmp(Opcode instruction) {
     chunk.write(static_cast<uint8_t>(instruction));
     chunk.writeInt(0); 
-    return chunk.code.size() - 4;
+    return static_cast<int>(chunk.code.size()) - 4;
 }
 
 void Compiler::patchJmp(int offsetIndex) {
-    int32_t jump = chunk.code.size() - offsetIndex - 4;
+    int32_t jump = static_cast<int32_t>(chunk.code.size()) - offsetIndex - 4;
     chunk.code[offsetIndex] = (jump >> 24) & 0xFF;
     chunk.code[offsetIndex + 1] = (jump >> 16) & 0xFF;
     chunk.code[offsetIndex + 2] = (jump >> 8) & 0xFF;
@@ -72,7 +72,7 @@ void Compiler::emitLoop(int loopStart) {
     chunk.write(static_cast<uint8_t>(Opcode::JMP));
     // After the VM reads the 4-byte operand, ip will be at (chunk.code.size() + 4).
     // We need to jump back to loopStart, so offset = loopStart - (here + 4).
-    int32_t offset = chunk.code.size() - loopStart + 4;
+    int32_t offset = static_cast<int32_t>(chunk.code.size()) - loopStart + 4;
     chunk.writeInt(-offset);
 }
 
@@ -392,7 +392,7 @@ void Compiler::visitWhileStmt(WhileStmt& stmt) {
     ctx.continuePatchesToIncrement = false;
     loopStack.push_back(ctx);
 
-    int loopStart = chunk.code.size();
+    int loopStart = static_cast<int>(chunk.code.size());
     stmt.condition->accept(*this);
     
     int exitJmp = emitJmp(Opcode::JMP_IF_FALSE);
@@ -421,7 +421,7 @@ void Compiler::visitForStmt(ForStmt& stmt) {
         stmt.initializer->accept(*this);
     }
 
-    int loopStart = chunk.code.size();
+    int loopStart = static_cast<int>(chunk.code.size());
     loopStack.back().loopStart = loopStart;
     
     int exitJmp = -1;
