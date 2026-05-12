@@ -166,11 +166,11 @@ let x = input;      // reads an integer from stdin
 
 ```mermaid
 flowchart LR
-    A["📄 Source Code"] --> B["🔤 Lexer"]
-    B -- "Tokens" --> C["🌳 Parser"]
-    C -- "AST" --> D["⚙️ Compiler"]
-    D -- "Bytecode" --> E["🖥️ Virtual Machine"]
-    D -. "--dump" .-> F["🔍 Disassembler"]
+    A["Source Code"] --> B["Lexer"]
+    B -- "Tokens" --> C["Parser"]
+    C -- "AST" --> D["Compiler"]
+    D -- "Bytecode" --> E["Virtual Machine"]
+    D -. "--dump" .-> F["Disassembler"]
 
     style A fill:#2d2d2d,stroke:#7c3aed,color:#e2e8f0
     style B fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
