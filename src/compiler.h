@@ -14,6 +14,7 @@ class Compiler : public ASTVisitor {
 public:
     Compiler();
     Chunk compile(const std::vector<std::unique_ptr<Statement>>& statements);
+    void reset() { chunk = Chunk(); locals.clear(); freeIds.clear(); variablesCount = 0; currentDepth = 0; loopStack.clear(); }
 
     void visitBinaryExpr(BinaryExpr& expr) override;
     void visitUnaryExpr(UnaryExpr& expr) override;

@@ -1,4 +1,6 @@
 #include "compiler.h"
+#include "vm.h"
+#include <optional>
 #include <stdexcept>
 
 Compiler::Compiler() : variablesCount(0), currentDepth(0) {}
@@ -27,6 +29,9 @@ int32_t Compiler::resolveVariable(const std::string& name, bool declare) {
             freeIds.pop_back();
         } else {
             id = variablesCount++;
+            if (id >= VM::MAX_VARIABLES) {
+                throw std::runtime_error("Compile error: Variable limit exceeded (max " + std::to_string(VM::MAX_VARIABLES) + ")");
+            }
         }
         locals.push_back({name, currentDepth, id});
         return id;
@@ -72,59 +77,59 @@ void Compiler::emitLoop(int loopStart) {
 }
 
 void Compiler::visitBinaryExpr(BinaryExpr& expr) {
+    // Attempt constant folding for two literal operands
     if (expr.left->nodeType == NodeType::LiteralExpr && expr.right->nodeType == NodeType::LiteralExpr) {
         auto* leftLit = static_cast<LiteralExpr*>(expr.left.get());
         auto* rightLit = static_cast<LiteralExpr*>(expr.right.get());
         if (leftLit->value.type == TokenType::NUMBER && rightLit->value.type == TokenType::NUMBER) {
+            auto tryFold = [&]() -> std::optional<int64_t> {
                 int32_t a = std::stoi(leftLit->value.value);
                 int32_t b = std::stoi(rightLit->value.value);
-                int64_t result;
                 switch (expr.op.type) {
-                    case TokenType::PLUS:  result = static_cast<int64_t>(a) + static_cast<int64_t>(b); break;
-                    case TokenType::MINUS: result = static_cast<int64_t>(a) - static_cast<int64_t>(b); break;
-                    case TokenType::STAR:  result = static_cast<int64_t>(a) * static_cast<int64_t>(b); break;
+                    case TokenType::PLUS:  return static_cast<int64_t>(a) + static_cast<int64_t>(b);
+                    case TokenType::MINUS: return static_cast<int64_t>(a) - static_cast<int64_t>(b);
+                    case TokenType::STAR:  return static_cast<int64_t>(a) * static_cast<int64_t>(b);
                     case TokenType::SLASH:
                         if (b == 0) throw std::runtime_error("Division by zero in constant expression");
                         if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in constant division");
-                        result = static_cast<int64_t>(a) / b; break;
+                        return static_cast<int64_t>(a) / b;
                     case TokenType::MOD:
                         if (b == 0) throw std::runtime_error("Modulo by zero in constant expression");
                         if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in constant modulo");
-                        result = static_cast<int64_t>(a) % b; break;
-                    case TokenType::BIT_XOR: result = a ^ b; break;
-                    case TokenType::BIT_AND: result = a & b; break;
-                    case TokenType::BIT_OR:  result = a | b; break;
-                    case TokenType::SHL:     
+                        return static_cast<int64_t>(a) % b;
+                    case TokenType::BIT_XOR: return static_cast<int64_t>(a ^ b);
+                    case TokenType::BIT_AND: return static_cast<int64_t>(a & b);
+                    case TokenType::BIT_OR:  return static_cast<int64_t>(a | b);
+                    case TokenType::SHL:
                         if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
-                        result = static_cast<int32_t>(static_cast<uint32_t>(a) << b); break;
-                    case TokenType::SHR:
+                        return static_cast<int64_t>(static_cast<int32_t>(static_cast<uint32_t>(a) << b));
+                    case TokenType::SHR: {
                         if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
-                        {
-                            // Portable arithmetic right shift: replicate sign bit
-                            uint32_t ua = static_cast<uint32_t>(a);
-                            uint32_t shifted = ua >> b;
-                            if (a < 0 && b > 0) {
-                                uint32_t mask = ~(UINT32_MAX >> b);
-                                shifted |= mask;
-                            }
-                            result = static_cast<int32_t>(shifted);
-                        }
-                        break;
-                    case TokenType::EQ_EQ:   result = (a == b) ? 1 : 0; break;
-                    case TokenType::BANG_EQ: result = (a != b) ? 1 : 0; break;
-                    case TokenType::LESS:    result = (a < b)  ? 1 : 0; break;
-                    case TokenType::LESS_EQ: result = (a <= b) ? 1 : 0; break;
-                    case TokenType::GREATER: result = (a > b)  ? 1 : 0; break;
-                    case TokenType::GREATER_EQ: result = (a >= b) ? 1 : 0; break;
-                    default: goto no_fold;
+                        uint32_t ua = static_cast<uint32_t>(a);
+                        uint32_t shifted = ua >> b;
+                        if (a < 0 && b > 0) shifted |= ~(UINT32_MAX >> b);
+                        return static_cast<int64_t>(static_cast<int32_t>(shifted));
+                    }
+                    case TokenType::EQ_EQ:     return (a == b) ? 1LL : 0LL;
+                    case TokenType::BANG_EQ:    return (a != b) ? 1LL : 0LL;
+                    case TokenType::LESS:       return (a <  b) ? 1LL : 0LL;
+                    case TokenType::LESS_EQ:    return (a <= b) ? 1LL : 0LL;
+                    case TokenType::GREATER:    return (a >  b) ? 1LL : 0LL;
+                    case TokenType::GREATER_EQ: return (a >= b) ? 1LL : 0LL;
+                    default: return std::nullopt;
                 }
-                if (result > INT32_MAX || result < INT32_MIN) throw std::runtime_error("Integer overflow in constant expression");
+            };
+            if (auto result = tryFold()) {
+                if (*result > INT32_MAX || *result < INT32_MIN)
+                    throw std::runtime_error("Integer overflow in constant expression");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
-                chunk.writeInt(static_cast<int32_t>(result));
+                chunk.writeInt(static_cast<int32_t>(*result));
                 return;
+            }
         }
     }
-no_fold:
+
+    // Runtime evaluation
     expr.left->accept(*this);
     expr.right->accept(*this);
 

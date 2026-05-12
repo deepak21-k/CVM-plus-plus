@@ -5,9 +5,11 @@
 
 class VM {
 public:
+    static constexpr int32_t MAX_VARIABLES = 65536;
+
     VM();
     void execute(const Chunk& chunk);
-    void resetStack() { sp = 0; }
+    void reset() { sp = 0; variables.clear(); }
 
     // For testing/debugging, we can inspect stack or variables
     int32_t peekStack() const;
@@ -17,7 +19,7 @@ private:
     std::array<int32_t, STACK_MAX> stack;
     size_t sp; // Stack pointer
 
-    std::vector<int32_t> globals;
+    std::vector<int32_t> variables;  // flat-addressable variable slots
 
     void push(int32_t value);
     int32_t pop();

@@ -184,11 +184,11 @@ void VM::execute(const Chunk& chunk) {
                 ip += 4;
                 int32_t val = pop();
                 if (id < 0) throw std::runtime_error("Negative variable ID");
-                if (id >= static_cast<int32_t>(globals.size())) {
-                    if (id > 100000) throw std::runtime_error("Too many variables");
-                    globals.resize(static_cast<size_t>(id) + 1, 0);
+                if (id >= static_cast<int32_t>(variables.size())) {
+                    if (id >= MAX_VARIABLES) throw std::runtime_error("Variable limit exceeded (max " + std::to_string(MAX_VARIABLES) + ")");
+                    variables.resize(static_cast<size_t>(id) + 1, 0);
                 }
-                globals[id] = val;
+                variables[id] = val;
                 break;
             }
             case Opcode::SET_VAR_PUSH: {
@@ -196,21 +196,21 @@ void VM::execute(const Chunk& chunk) {
                 ip += 4;
                 int32_t val = pop();
                 if (id < 0) throw std::runtime_error("Negative variable ID");
-                if (id >= static_cast<int32_t>(globals.size())) {
-                    if (id > 100000) throw std::runtime_error("Too many variables");
-                    globals.resize(static_cast<size_t>(id) + 1, 0);
+                if (id >= static_cast<int32_t>(variables.size())) {
+                    if (id >= MAX_VARIABLES) throw std::runtime_error("Variable limit exceeded (max " + std::to_string(MAX_VARIABLES) + ")");
+                    variables.resize(static_cast<size_t>(id) + 1, 0);
                 }
-                globals[id] = val;
+                variables[id] = val;
                 push(val);
                 break;
             }
             case Opcode::GET_VAR: {
                 int32_t id = chunk.readInt(ip);
                 ip += 4;
-                if (id < 0 || id >= static_cast<int32_t>(globals.size())) {
+                if (id < 0 || id >= static_cast<int32_t>(variables.size())) {
                     throw std::runtime_error("Undefined variable read");
                 }
-                push(globals[id]);
+                push(variables[id]);
                 break;
             }
             case Opcode::JMP: {
@@ -234,7 +234,7 @@ void VM::execute(const Chunk& chunk) {
             }
             case Opcode::PRINT: {
                 int32_t val = pop();
-                std::cout << val << std::endl;
+                std::cout << val << '\n';
                 break;
             }
             case Opcode::INPUT: {

@@ -24,11 +24,11 @@ enum class Opcode : uint8_t {
 struct Chunk {
     std::vector<uint8_t> code;
     
-    void write(uint8_t byte) {
+    inline void write(uint8_t byte) {
         code.push_back(byte);
     }
     
-    void writeInt(int32_t value) {
+    inline void writeInt(int32_t value) {
         code.push_back((value >> 24) & 0xFF);
         code.push_back((value >> 16) & 0xFF);
         code.push_back((value >> 8) & 0xFF);

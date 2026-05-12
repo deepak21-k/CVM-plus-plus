@@ -28,13 +28,13 @@ void run(const std::string& source, Compiler& compiler, VM& vm) {
         }
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << '\n';
-        compiler = Compiler();
-        vm = VM();  // Reset VM globals to stay in sync with compiler
+        compiler.reset();
+        vm.reset();  // Reset VM variables to stay in sync with compiler
     }
 }
 
 void repl() {
-    std::cout << "CVM++ REPL v1.0\nType 'exit' or 'quit' to close.\n";
+    std::cout << "CVM++ REPL v1.1\nType 'exit' or 'quit' to close.\n";
     VM vm;
     Compiler compiler;
     std::string line;
@@ -61,7 +61,7 @@ void repl() {
 void runFile(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {
-        std::cerr << "Could not open file: " << path << std::endl;
+        std::cerr << "Could not open file: " << path << '\n';
         return;
     }
     std::stringstream buffer;

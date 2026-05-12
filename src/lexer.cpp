@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-Lexer::Lexer(const std::string& source) : source(source), pos(0), line(1), column(1) {}
+Lexer::Lexer(const std::string& source_) : source(source_), pos(0), line(1), column(1) {}
 
 char Lexer::peek() const {
     if (isAtEnd()) return '\0';
@@ -43,15 +43,21 @@ void Lexer::skipWhitespace() {
             }
         } else if (c == '/' && peekNext() == '*') {
             // Block comment (non-nesting, matching C behavior)
+            int commentStartLine = line;
             advance(); // skip '/'
             advance(); // skip '*'
+            bool closed = false;
             while (!isAtEnd()) {
                 if (peek() == '*' && peekNext() == '/') {
                     advance(); // skip '*'
                     advance(); // skip '/'
+                    closed = true;
                     break;
                 }
                 advance();
+            }
+            if (!closed) {
+                throw std::runtime_error("Lexer Error [line " + std::to_string(commentStartLine) + "]: Unterminated block comment");
             }
         } else {
             break;
@@ -60,7 +66,8 @@ void Lexer::skipWhitespace() {
 }
 
 Token Lexer::createToken(TokenType type, const std::string& value) {
-    return {type, value, line, column - static_cast<int>(value.length())};
+    int startCol = std::max(1, column - static_cast<int>(value.length()));
+    return {type, value, line, startCol};
 }
 
 std::vector<Token> Lexer::tokenize() {
@@ -112,7 +119,7 @@ std::vector<Token> Lexer::tokenize() {
                     while (!isAtEnd() && std::isxdigit(static_cast<unsigned char>(peek()))) hex += advance();
                     if (hex.empty()) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Expected hex digits after '0x'");
                     long long val = std::stoll(hex, nullptr, 16);
-                    if (val > INT32_MAX) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Hex literal out of int32 range");
+                    if (val > INT32_MAX || val < INT32_MIN) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Hex literal out of int32 range");
                     tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
                     continue;
                 } else if (next == 'b' || next == 'B') {
@@ -121,7 +128,7 @@ std::vector<Token> Lexer::tokenize() {
                     while (!isAtEnd() && (peek() == '0' || peek() == '1')) bin += advance();
                     if (bin.empty()) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Expected binary digits after '0b'");
                     long long val = std::stoll(bin, nullptr, 2);
-                    if (val > INT32_MAX) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Binary literal out of int32 range");
+                    if (val > INT32_MAX || val < INT32_MIN) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Binary literal out of int32 range");
                     tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
                     continue;
                 } else if (next == 'o' || next == 'O') {
@@ -130,7 +137,7 @@ std::vector<Token> Lexer::tokenize() {
                     while (!isAtEnd() && peek() >= '0' && peek() <= '7') oct += advance();
                     if (oct.empty()) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Expected octal digits after '0o'");
                     long long val = std::stoll(oct, nullptr, 8);
-                    if (val > INT32_MAX) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Octal literal out of int32 range");
+                    if (val > INT32_MAX || val < INT32_MIN) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Octal literal out of int32 range");
                     tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
                     continue;
                 }

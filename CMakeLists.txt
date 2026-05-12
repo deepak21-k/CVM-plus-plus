@@ -15,6 +15,6 @@ add_executable(cvm
 )
 
 target_compile_options(cvm PRIVATE
-    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Wshadow>
-    $<$<CXX_COMPILER_ID:MSVC>:/W4>
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Wshadow -Werror>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
 )
