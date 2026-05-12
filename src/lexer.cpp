@@ -1,7 +1,7 @@
 #include "lexer.h"
+#include "error.h"
 #include <cctype>
 #include <unordered_map>
-#include <stdexcept>
 #include <string>
 
 Lexer::Lexer(const std::string& source_) : source(source_), pos(0), line(1), column(1) {}
@@ -57,7 +57,7 @@ void Lexer::skipWhitespace() {
                 advance();
             }
             if (!closed) {
-                throw std::runtime_error("Lexer Error [line " + std::to_string(commentStartLine) + "]: Unterminated block comment");
+                throw LexError("Unterminated block comment", commentStartLine, column);
             }
         } else {
             break;
@@ -117,27 +117,27 @@ std::vector<Token> Lexer::tokenize() {
                     advance(); advance(); // skip '0x'
                     std::string hex;
                     while (!isAtEnd() && std::isxdigit(static_cast<unsigned char>(peek()))) hex += advance();
-                    if (hex.empty()) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Expected hex digits after '0x'");
+                    if (hex.empty()) throw LexError("Expected hex digits after '0x'", line, column);
                     long long val = std::stoll(hex, nullptr, 16);
-                    if (val > INT32_MAX || val < INT32_MIN) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Hex literal out of int32 range");
+                    if (val > INT32_MAX || val < INT32_MIN) throw LexError("Hex literal out of int32 range", line, column);
                     tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
                     continue;
                 } else if (next == 'b' || next == 'B') {
                     advance(); advance(); // skip '0b'
                     std::string bin;
                     while (!isAtEnd() && (peek() == '0' || peek() == '1')) bin += advance();
-                    if (bin.empty()) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Expected binary digits after '0b'");
+                    if (bin.empty()) throw LexError("Expected binary digits after '0b'", line, column);
                     long long val = std::stoll(bin, nullptr, 2);
-                    if (val > INT32_MAX || val < INT32_MIN) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Binary literal out of int32 range");
+                    if (val > INT32_MAX || val < INT32_MIN) throw LexError("Binary literal out of int32 range", line, column);
                     tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
                     continue;
                 } else if (next == 'o' || next == 'O') {
                     advance(); advance(); // skip '0o'
                     std::string oct;
                     while (!isAtEnd() && peek() >= '0' && peek() <= '7') oct += advance();
-                    if (oct.empty()) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Expected octal digits after '0o'");
+                    if (oct.empty()) throw LexError("Expected octal digits after '0o'", line, column);
                     long long val = std::stoll(oct, nullptr, 8);
-                    if (val > INT32_MAX || val < INT32_MIN) throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Octal literal out of int32 range");
+                    if (val > INT32_MAX || val < INT32_MIN) throw LexError("Octal literal out of int32 range", line, column);
                     tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
                     continue;
                 }
@@ -236,7 +236,7 @@ std::vector<Token> Lexer::tokenize() {
                 break;
             default: {
                 std::string errText(1, advanced);
-                throw std::runtime_error("Lexer Error [line " + std::to_string(line) + "]: Unexpected character '" + errText + "'");
+                throw LexError("Unexpected character '" + errText + "'", line, column);
             }
         }
     }

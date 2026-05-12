@@ -1,17 +1,17 @@
 #include "vm.h"
+#include "error.h"
 #include <iostream>
-#include <stdexcept>
 #include <limits>
 
 VM::VM() : sp(0) {}
 
 void VM::push(int32_t value) {
-    if (sp >= STACK_MAX) throw std::runtime_error("Stack overflow");
+    if (sp >= STACK_MAX) throw RuntimeError("Stack overflow");
     stack[sp++] = value;
 }
 
 int32_t VM::pop() {
-    if (sp == 0) throw std::runtime_error("Stack underflow");
+    if (sp == 0) throw RuntimeError("Stack underflow");
     return stack[--sp];
 }
 
@@ -43,7 +43,7 @@ void VM::execute(const Chunk& chunk) {
                 int32_t b = pop();
                 int32_t a = pop();
                 int64_t result = static_cast<int64_t>(a) + static_cast<int64_t>(b);
-                if (result > INT32_MAX || result < INT32_MIN) throw std::runtime_error("Integer overflow in addition");
+                if (result > INT32_MAX || result < INT32_MIN) throw RuntimeError("Integer overflow in addition");
                 push(static_cast<int32_t>(result));
                 break;
             }
@@ -51,7 +51,7 @@ void VM::execute(const Chunk& chunk) {
                 int32_t b = pop();
                 int32_t a = pop();
                 int64_t result = static_cast<int64_t>(a) - static_cast<int64_t>(b);
-                if (result > INT32_MAX || result < INT32_MIN) throw std::runtime_error("Integer overflow in subtraction");
+                if (result > INT32_MAX || result < INT32_MIN) throw RuntimeError("Integer overflow in subtraction");
                 push(static_cast<int32_t>(result));
                 break;
             }
@@ -59,23 +59,23 @@ void VM::execute(const Chunk& chunk) {
                 int32_t b = pop();
                 int32_t a = pop();
                 int64_t result = static_cast<int64_t>(a) * static_cast<int64_t>(b);
-                if (result > INT32_MAX || result < INT32_MIN) throw std::runtime_error("Integer overflow in multiplication");
+                if (result > INT32_MAX || result < INT32_MIN) throw RuntimeError("Integer overflow in multiplication");
                 push(static_cast<int32_t>(result));
                 break;
             }
             case Opcode::DIV: {
                 int32_t b = pop();
                 int32_t a = pop();
-                if (b == 0) throw std::runtime_error("Division by zero");
-                if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in division");
+                if (b == 0) throw RuntimeError("Division by zero");
+                if (a == INT32_MIN && b == -1) throw RuntimeError("Integer overflow in division");
                 push(a / b);
                 break;
             }
             case Opcode::MOD: {
                 int32_t b = pop();
                 int32_t a = pop();
-                if (b == 0) throw std::runtime_error("Modulo by zero");
-                if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in modulo");
+                if (b == 0) throw RuntimeError("Modulo by zero");
+                if (a == INT32_MIN && b == -1) throw RuntimeError("Integer overflow in modulo");
                 push(a % b);
                 break;
             }
@@ -136,14 +136,14 @@ void VM::execute(const Chunk& chunk) {
             case Opcode::SHL: {
                 int32_t b = pop();
                 int32_t a = pop();
-                if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
+                if (b < 0 || b >= 32) throw RuntimeError("Invalid shift amount");
                 push(static_cast<int32_t>(static_cast<uint32_t>(a) << b));
                 break;
             }
             case Opcode::SHR: {
                 int32_t b = pop();
                 int32_t a = pop();
-                if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
+                if (b < 0 || b >= 32) throw RuntimeError("Invalid shift amount");
                 // Portable arithmetic right shift: replicate sign bit into vacated positions
                 uint32_t ua = static_cast<uint32_t>(a);
                 uint32_t shifted = ua >> b;
@@ -171,7 +171,7 @@ void VM::execute(const Chunk& chunk) {
             }
             case Opcode::NEG: {
                 int32_t a = pop();
-                if (a == INT32_MIN) throw std::runtime_error("Integer overflow in negation");
+                if (a == INT32_MIN) throw RuntimeError("Integer overflow in negation");
                 push(-a);
                 break;
             }
@@ -183,9 +183,9 @@ void VM::execute(const Chunk& chunk) {
                 int32_t id = chunk.readInt(ip);
                 ip += 4;
                 int32_t val = pop();
-                if (id < 0) throw std::runtime_error("Negative variable ID");
+                if (id < 0) throw RuntimeError("Negative variable ID");
                 if (id >= static_cast<int32_t>(variables.size())) {
-                    if (id >= MAX_VARIABLES) throw std::runtime_error("Variable limit exceeded (max " + std::to_string(MAX_VARIABLES) + ")");
+                    if (id >= MAX_VARIABLES) throw RuntimeError("Variable limit exceeded (max " + std::to_string(MAX_VARIABLES) + ")");
                     variables.resize(static_cast<size_t>(id) + 1, 0);
                 }
                 variables[id] = val;
@@ -195,9 +195,9 @@ void VM::execute(const Chunk& chunk) {
                 int32_t id = chunk.readInt(ip);
                 ip += 4;
                 int32_t val = pop();
-                if (id < 0) throw std::runtime_error("Negative variable ID");
+                if (id < 0) throw RuntimeError("Negative variable ID");
                 if (id >= static_cast<int32_t>(variables.size())) {
-                    if (id >= MAX_VARIABLES) throw std::runtime_error("Variable limit exceeded (max " + std::to_string(MAX_VARIABLES) + ")");
+                    if (id >= MAX_VARIABLES) throw RuntimeError("Variable limit exceeded (max " + std::to_string(MAX_VARIABLES) + ")");
                     variables.resize(static_cast<size_t>(id) + 1, 0);
                 }
                 variables[id] = val;
@@ -208,7 +208,7 @@ void VM::execute(const Chunk& chunk) {
                 int32_t id = chunk.readInt(ip);
                 ip += 4;
                 if (id < 0 || id >= static_cast<int32_t>(variables.size())) {
-                    throw std::runtime_error("Undefined variable read");
+                    throw RuntimeError("Undefined variable read");
                 }
                 push(variables[id]);
                 break;
@@ -217,7 +217,7 @@ void VM::execute(const Chunk& chunk) {
                 int32_t offset = chunk.readInt(ip);
                 ip += 4;
                 size_t newIp = static_cast<size_t>(static_cast<int64_t>(ip) + offset);
-                if (newIp > chunk.code.size()) throw std::runtime_error("Jump target out of bounds");
+                if (newIp > chunk.code.size()) throw RuntimeError("Jump target out of bounds");
                 ip = newIp;
                 break;
             }
@@ -227,7 +227,7 @@ void VM::execute(const Chunk& chunk) {
                 int32_t cond = pop();
                 if (cond == 0) {
                     size_t newIp = static_cast<size_t>(static_cast<int64_t>(ip) + offset);
-                    if (newIp > chunk.code.size()) throw std::runtime_error("Jump target out of bounds");
+                    if (newIp > chunk.code.size()) throw RuntimeError("Jump target out of bounds");
                     ip = newIp;
                 }
                 break;
@@ -242,7 +242,7 @@ void VM::execute(const Chunk& chunk) {
                 if (!(std::cin >> val)) {
                     std::cin.clear();
                     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                    throw std::runtime_error("Invalid input: expected an integer");
+                    throw RuntimeError("Invalid input: expected an integer");
                 }
                 push(val);
                 break;
@@ -251,10 +251,10 @@ void VM::execute(const Chunk& chunk) {
                 return;
             }
             default:
-                throw std::runtime_error("Unknown Opcode");
+                throw RuntimeError("Unknown Opcode");
         }
     }
-    throw std::runtime_error("Execution reached end of chunk without HALT");
+    throw RuntimeError("Execution reached end of chunk without HALT");
     } catch (...) {
         sp = savedSp;
         throw;

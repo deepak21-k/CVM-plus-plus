@@ -1,7 +1,7 @@
 #include "compiler.h"
 #include "vm.h"
+#include "error.h"
 #include <optional>
-#include <stdexcept>
 
 Compiler::Compiler() : variablesCount(0), currentDepth(0) {}
 
@@ -20,7 +20,7 @@ int32_t Compiler::resolveVariable(const std::string& name, bool declare) {
     if (declare) {
         for (auto it = locals.rbegin(); it != locals.rend(); ++it) {
             if (it->depth < currentDepth) break;
-            if (it->name == name) throw std::runtime_error("Variable '" + name + "' already declared in this scope.");
+            if (it->name == name) throw CompileError("Variable '" + name + "' already declared in this scope.");
         }
         // Needs declaring
         int32_t id;
@@ -30,7 +30,7 @@ int32_t Compiler::resolveVariable(const std::string& name, bool declare) {
         } else {
             id = variablesCount++;
             if (id >= VM::MAX_VARIABLES) {
-                throw std::runtime_error("Compile error: Variable limit exceeded (max " + std::to_string(VM::MAX_VARIABLES) + ")");
+                throw CompileError("Compile error: Variable limit exceeded (max " + std::to_string(VM::MAX_VARIABLES) + ")");
             }
         }
         locals.push_back({name, currentDepth, id});
@@ -39,7 +39,7 @@ int32_t Compiler::resolveVariable(const std::string& name, bool declare) {
     for (auto it = locals.rbegin(); it != locals.rend(); ++it) {
         if (it->name == name) return it->id;
     }
-    throw std::runtime_error("Undeclared variable '" + name + "'");
+    throw CompileError("Undeclared variable '" + name + "'");
 }
 
 void Compiler::beginScope() {
@@ -90,21 +90,21 @@ void Compiler::visitBinaryExpr(BinaryExpr& expr) {
                     case TokenType::MINUS: return static_cast<int64_t>(a) - static_cast<int64_t>(b);
                     case TokenType::STAR:  return static_cast<int64_t>(a) * static_cast<int64_t>(b);
                     case TokenType::SLASH:
-                        if (b == 0) throw std::runtime_error("Division by zero in constant expression");
-                        if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in constant division");
+                        if (b == 0) throw CompileError("Division by zero in constant expression");
+                        if (a == INT32_MIN && b == -1) throw CompileError("Integer overflow in constant division");
                         return static_cast<int64_t>(a) / b;
                     case TokenType::MOD:
-                        if (b == 0) throw std::runtime_error("Modulo by zero in constant expression");
-                        if (a == INT32_MIN && b == -1) throw std::runtime_error("Integer overflow in constant modulo");
+                        if (b == 0) throw CompileError("Modulo by zero in constant expression");
+                        if (a == INT32_MIN && b == -1) throw CompileError("Integer overflow in constant modulo");
                         return static_cast<int64_t>(a) % b;
                     case TokenType::BIT_XOR: return static_cast<int64_t>(a ^ b);
                     case TokenType::BIT_AND: return static_cast<int64_t>(a & b);
                     case TokenType::BIT_OR:  return static_cast<int64_t>(a | b);
                     case TokenType::SHL:
-                        if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
+                        if (b < 0 || b >= 32) throw CompileError("Invalid shift amount");
                         return static_cast<int64_t>(static_cast<int32_t>(static_cast<uint32_t>(a) << b));
                     case TokenType::SHR: {
-                        if (b < 0 || b >= 32) throw std::runtime_error("Invalid shift amount");
+                        if (b < 0 || b >= 32) throw CompileError("Invalid shift amount");
                         uint32_t ua = static_cast<uint32_t>(a);
                         uint32_t shifted = ua >> b;
                         if (a < 0 && b > 0) shifted |= ~(UINT32_MAX >> b);
@@ -121,7 +121,7 @@ void Compiler::visitBinaryExpr(BinaryExpr& expr) {
             };
             if (auto result = tryFold()) {
                 if (*result > INT32_MAX || *result < INT32_MIN)
-                    throw std::runtime_error("Integer overflow in constant expression");
+                    throw CompileError("Integer overflow in constant expression");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(static_cast<int32_t>(*result));
                 return;
@@ -150,7 +150,7 @@ void Compiler::visitBinaryExpr(BinaryExpr& expr) {
         case TokenType::SHL: chunk.write(static_cast<uint8_t>(Opcode::SHL)); break;
         case TokenType::SHR: chunk.write(static_cast<uint8_t>(Opcode::SHR)); break;
         case TokenType::BIT_OR: chunk.write(static_cast<uint8_t>(Opcode::BIT_OR)); break;
-        default: throw std::runtime_error("Unknown binary operator");
+        default: throw CompileError("Unknown binary operator");
     }
 }
 
@@ -210,7 +210,7 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
         
         patchJmp(endJump);
     } else {
-        throw std::runtime_error("Unknown logical operator");
+        throw CompileError("Unknown logical operator");
     }
 }
 
@@ -226,25 +226,25 @@ void Compiler::visitUnaryExpr(UnaryExpr& expr) {
             if (expr.op.type == TokenType::MINUS) {
                 long long result = -val;
                 if (result > INT32_MAX || result < INT32_MIN)
-                    throw std::runtime_error("Integer overflow in constant negation");
+                    throw CompileError("Integer overflow in constant negation");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(static_cast<int32_t>(result));
                 return;
             } else if (expr.op.type == TokenType::BIT_NOT) {
                 if (val > INT32_MAX || val < INT32_MIN)
-                    throw std::runtime_error("Integer literal out of range");
+                    throw CompileError("Integer literal out of range");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(~static_cast<int32_t>(val));
                 return;
             } else if (expr.op.type == TokenType::NOT) {
                 if (val > INT32_MAX || val < INT32_MIN)
-                    throw std::runtime_error("Integer literal out of range");
+                    throw CompileError("Integer literal out of range");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(val == 0 ? 1 : 0);
                 return;
             } else if (expr.op.type == TokenType::PLUS) {
                 if (val > INT32_MAX || val < INT32_MIN)
-                    throw std::runtime_error("Integer literal out of range");
+                    throw CompileError("Integer literal out of range");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(static_cast<int32_t>(val));
                 return;
@@ -271,7 +271,7 @@ runtime:
     } else if (expr.op.type == TokenType::PLUS) {
         // Unary plus is a no-op — value is already on the stack
     } else {
-        throw std::runtime_error("Unknown unary operator");
+        throw CompileError("Unknown unary operator");
     }
 }
 
@@ -281,13 +281,13 @@ void Compiler::visitLiteralExpr(LiteralExpr& expr) {
         try {
             long long val = std::stoll(expr.value.value);
             if (val > INT32_MAX || val < INT32_MIN) {
-                throw std::runtime_error("Integer literal out of range: " + expr.value.value);
+                throw CompileError("Integer literal out of range: " + expr.value.value);
             }
             chunk.writeInt(static_cast<int32_t>(val));
         } catch (const std::out_of_range&) {
-            throw std::runtime_error("Integer literal out of range: " + expr.value.value);
+            throw CompileError("Integer literal out of range: " + expr.value.value);
         } catch (const std::invalid_argument&) {
-            throw std::runtime_error("Invalid integer literal: " + expr.value.value);
+            throw CompileError("Invalid integer literal: " + expr.value.value);
         }
     } else if (expr.value.type == TokenType::TRUE_LIT) {
         chunk.write(static_cast<uint8_t>(Opcode::PUSH_BOOL));
@@ -296,7 +296,7 @@ void Compiler::visitLiteralExpr(LiteralExpr& expr) {
         chunk.write(static_cast<uint8_t>(Opcode::PUSH_BOOL));
         chunk.write(0);
     } else {
-        throw std::runtime_error("Unknown literal type");
+        throw CompileError("Unknown literal type");
     }
 }
 
@@ -462,7 +462,7 @@ void Compiler::visitForStmt(ForStmt& stmt) {
 
 void Compiler::visitBreakStmt(BreakStmt&) {
     if (loopStack.empty()) {
-        throw std::runtime_error("Cannot use 'break' outside of a loop");
+        throw CompileError("Cannot use 'break' outside of a loop");
     }
     int j = emitJmp(Opcode::JMP);
     loopStack.back().breakJumps.push_back(j);
@@ -470,7 +470,7 @@ void Compiler::visitBreakStmt(BreakStmt&) {
 
 void Compiler::visitContinueStmt(ContinueStmt&) {
     if (loopStack.empty()) {
-        throw std::runtime_error("Cannot use 'continue' outside of a loop");
+        throw CompileError("Cannot use 'continue' outside of a loop");
     }
     LoopContext& ctx = loopStack.back();
     if (ctx.continuePatchesToIncrement) {

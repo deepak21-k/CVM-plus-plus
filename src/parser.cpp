@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "error.h"
 #include <iostream>
 
 Parser::Parser(const std::vector<Token>& tokens_) : tokens(tokens_), current(0) {}
@@ -49,7 +50,7 @@ bool Parser::match(std::initializer_list<TokenType> types) {
 
 const Token& Parser::consume(TokenType type, const std::string& message) {
     if (check(type)) return advance();
-    throw std::runtime_error("Parser Error [" + std::to_string(peek().line) + "]: " + message + " (got '" + peek().value + "')");
+    throw ParseError(message + " (got '" + peek().value + "')", peek().line, peek().column);
 }
 
 void Parser::synchronize() {
@@ -209,7 +210,8 @@ std::unique_ptr<Expression> Parser::assignment() {
             return std::make_unique<AssignExpr>(std::move(name), std::move(value));
         }
 
-        throw std::runtime_error("Invalid assignment target.");
+        Token eq = previous();
+        throw ParseError("Invalid assignment target.", eq.line, eq.column);
     }
 
     return expr;
@@ -320,7 +322,7 @@ std::unique_ptr<Expression> Parser::unary() {
         Token op = previous();
         std::unique_ptr<Expression> right = unary();
         if (right->nodeType != NodeType::VariableExpr) {
-            throw std::runtime_error("Parser Error [" + std::to_string(op.line) + "]: Prefix update requires a variable.");
+            throw ParseError("Prefix update requires a variable.", op.line, op.column);
         }
         auto* varExpr = static_cast<VariableExpr*>(right.get());
         Token name = varExpr->name;
@@ -339,7 +341,7 @@ std::unique_ptr<Expression> Parser::postfix() {
     while (match({TokenType::PLUS_PLUS, TokenType::MINUS_MINUS})) {
         Token op = previous();
         if (expr->nodeType != NodeType::VariableExpr) {
-            throw std::runtime_error("Parser Error [" + std::to_string(op.line) + "]: Postfix update requires a variable.");
+            throw ParseError("Postfix update requires a variable.", op.line, op.column);
         }
         auto* varExpr = static_cast<VariableExpr*>(expr.get());
         Token name = varExpr->name;
@@ -366,5 +368,5 @@ std::unique_ptr<Expression> Parser::primary() {
         consume(TokenType::RPAREN, "Expect ')' after expression.");
         return expr;
     }
-    throw std::runtime_error("Parser Error [" + std::to_string(peek().line) + "]: Expect expression. Got '" + peek().value + "'");
+    throw ParseError("Expect expression. Got '" + peek().value + "'", peek().line, peek().column);
 }
