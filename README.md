@@ -2,7 +2,7 @@
 
 **CVM++** is a high-performance, stack-based virtual machine and compiler written from scratch in modern C++17. It features a complete pipeline — lexer, recursive-descent parser, single-pass compiler with constant folding, and a bytecode VM with strict runtime safety guarantees.
 
-[![CI](https://github.com/yourusername/CVM_PlusPlus/actions/workflows/ci.yml/badge.svg)](https://github.com/yourusername/CVM_PlusPlus/actions/workflows/ci.yml)
+[![CI](https://github.com/Komal-ai417/CVM-plus-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/Komal-ai417/CVM-plus-plus/actions/workflows/ci.yml)
 
 ## Features
 
@@ -28,8 +28,8 @@
 ### Build Instructions
 
 ```bash
-git clone https://github.com/yourusername/CVM_PlusPlus.git
-cd CVM_PlusPlus
+git clone https://github.com/Komal-ai417/CVM-plus-plus.git
+cd CVM-plus-plus
 
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
