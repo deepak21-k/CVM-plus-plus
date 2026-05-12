@@ -74,13 +74,15 @@ Bytecode disassembly enabled.
 ./build/cvm tests/break_continue.cvm
 ```
 
-### Bytecode Dump
+### Bytecode Dump (inspect only)
 
-Use `--dump` to print the compiled bytecode before execution:
+Use `--dump` to print the compiled bytecode **without executing** the program:
 
 ```bash
 ./build/cvm --dump tests/fibonacci.cvm
 ```
+
+> In the REPL, `disasm on` works differently — it prints the bytecode **and then executes** each line, so you can inspect what your code compiles to interactively.
 
 ---
 

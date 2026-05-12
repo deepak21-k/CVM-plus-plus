@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 bool dumpBytecode = false;
+bool dumpOnly = false;  // --dump from CLI: disassemble without executing
 
 void run(const std::string& source, Compiler& compiler, VM& vm) {
     try {
@@ -18,11 +19,13 @@ void run(const std::string& source, Compiler& compiler, VM& vm) {
 
         Chunk chunk = compiler.compile(statements);
 
-        if (dumpBytecode) {
+        if (dumpBytecode || dumpOnly) {
             disassembleChunk(chunk, "Compiled Bytecode");
         }
 
-        vm.execute(chunk);
+        if (!dumpOnly) {
+            vm.execute(chunk);
+        }
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << '\n';
         compiler = Compiler();
@@ -76,7 +79,7 @@ int main(int argc, char* argv[]) {
         for (int i = 1; i < argc; i++) {
             std::string arg = argv[i];
             if (arg == "--dump") {
-                dumpBytecode = true;
+                dumpOnly = true;
             } else {
                 path = arg;
             }
