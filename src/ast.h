@@ -16,7 +16,8 @@ enum class NodeType {
 
 struct ASTNode {
     const NodeType nodeType;
-    explicit ASTNode(NodeType type) : nodeType(type) {}
+    int line;
+    explicit ASTNode(NodeType type, int line_) : nodeType(type), line(line_) {}
     virtual ~ASTNode() = default;
     virtual void accept(ASTVisitor& visitor) = 0;
 };
@@ -34,7 +35,7 @@ struct BinaryExpr : public Expression {
     std::unique_ptr<Expression> right;
     
     BinaryExpr(std::unique_ptr<Expression> left_, Token op_, std::unique_ptr<Expression> right_)
-        : Expression(NodeType::BinaryExpr), left(std::move(left_)), op(std::move(op_)), right(std::move(right_)) {}
+        : Expression(NodeType::BinaryExpr, op_.line), left(std::move(left_)), op(std::move(op_)), right(std::move(right_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
@@ -43,7 +44,7 @@ struct UnaryExpr : public Expression {
     std::unique_ptr<Expression> right;
 
     UnaryExpr(Token op_, std::unique_ptr<Expression> right_)
-        : Expression(NodeType::UnaryExpr), op(std::move(op_)), right(std::move(right_)) {}
+        : Expression(NodeType::UnaryExpr, op_.line), op(std::move(op_)), right(std::move(right_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
@@ -53,26 +54,26 @@ struct LogicalExpr : public Expression {
     std::unique_ptr<Expression> right;
 
     LogicalExpr(std::unique_ptr<Expression> left_, Token op_, std::unique_ptr<Expression> right_)
-        : Expression(NodeType::LogicalExpr), left(std::move(left_)), op(std::move(op_)), right(std::move(right_)) {}
+        : Expression(NodeType::LogicalExpr, op_.line), left(std::move(left_)), op(std::move(op_)), right(std::move(right_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
 struct LiteralExpr : public Expression {
     Token value;
 
-    explicit LiteralExpr(Token value_) : Expression(NodeType::LiteralExpr), value(std::move(value_)) {}
+    explicit LiteralExpr(Token value_) : Expression(NodeType::LiteralExpr, value_.line), value(std::move(value_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
 struct VariableExpr : public Expression {
     Token name;
 
-    explicit VariableExpr(Token name_) : Expression(NodeType::VariableExpr), name(std::move(name_)) {}
+    explicit VariableExpr(Token name_) : Expression(NodeType::VariableExpr, name_.line), name(std::move(name_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
 struct InputExpr : public Expression {
-    InputExpr() : Expression(NodeType::InputExpr) {}
+    explicit InputExpr(int line_) : Expression(NodeType::InputExpr, line_) {}
     void accept(ASTVisitor& visitor) override;
 };
 
@@ -81,7 +82,7 @@ struct AssignExpr : public Expression {
     std::unique_ptr<Expression> value;
 
     AssignExpr(Token name_, std::unique_ptr<Expression> value_)
-        : Expression(NodeType::AssignExpr), name(std::move(name_)), value(std::move(value_)) {}
+        : Expression(NodeType::AssignExpr, name_.line), name(std::move(name_)), value(std::move(value_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
@@ -91,22 +92,22 @@ struct UpdateExpr : public Expression {
     bool isPrefix;
 
     UpdateExpr(Token name_, bool isIncrement_, bool isPrefix_)
-        : Expression(NodeType::UpdateExpr), name(std::move(name_)), isIncrement(isIncrement_), isPrefix(isPrefix_) {}
+        : Expression(NodeType::UpdateExpr, name_.line), name(std::move(name_)), isIncrement(isIncrement_), isPrefix(isPrefix_) {}
     void accept(ASTVisitor& visitor) override;
 };
 
 struct BlockStmt : public Statement {
     std::vector<std::unique_ptr<Statement>> statements;
 
-    explicit BlockStmt(std::vector<std::unique_ptr<Statement>> statements_)
-        : Statement(NodeType::BlockStmt), statements(std::move(statements_)) {}
+    explicit BlockStmt(std::vector<std::unique_ptr<Statement>> statements_, int line_)
+        : Statement(NodeType::BlockStmt, line_), statements(std::move(statements_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
 struct ExpressionStmt : public Statement {
     std::unique_ptr<Expression> expr;
 
-    explicit ExpressionStmt(std::unique_ptr<Expression> expr_) : Statement(NodeType::ExpressionStmt), expr(std::move(expr_)) {}
+    explicit ExpressionStmt(std::unique_ptr<Expression> expr_, int line_) : Statement(NodeType::ExpressionStmt, line_), expr(std::move(expr_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
@@ -115,7 +116,7 @@ struct LetStmt : public Statement {
     std::unique_ptr<Expression> initializer;
 
     LetStmt(Token name_, std::unique_ptr<Expression> initializer_)
-        : Statement(NodeType::LetStmt), name(std::move(name_)), initializer(std::move(initializer_)) {}
+        : Statement(NodeType::LetStmt, name_.line), name(std::move(name_)), initializer(std::move(initializer_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
@@ -124,8 +125,8 @@ struct IfStmt : public Statement {
     std::unique_ptr<Statement> thenBranch;
     std::unique_ptr<Statement> elseBranch;
 
-    IfStmt(std::unique_ptr<Expression> condition_, std::unique_ptr<Statement> thenBranch_, std::unique_ptr<Statement> elseBranch_)
-        : Statement(NodeType::IfStmt), condition(std::move(condition_)), thenBranch(std::move(thenBranch_)), elseBranch(std::move(elseBranch_)) {}
+    IfStmt(std::unique_ptr<Expression> condition_, std::unique_ptr<Statement> thenBranch_, std::unique_ptr<Statement> elseBranch_, int line_)
+        : Statement(NodeType::IfStmt, line_), condition(std::move(condition_)), thenBranch(std::move(thenBranch_)), elseBranch(std::move(elseBranch_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
@@ -133,8 +134,8 @@ struct WhileStmt : public Statement {
     std::unique_ptr<Expression> condition;
     std::unique_ptr<Statement> body;
 
-    WhileStmt(std::unique_ptr<Expression> condition_, std::unique_ptr<Statement> body_)
-        : Statement(NodeType::WhileStmt), condition(std::move(condition_)), body(std::move(body_)) {}
+    WhileStmt(std::unique_ptr<Expression> condition_, std::unique_ptr<Statement> body_, int line_)
+        : Statement(NodeType::WhileStmt, line_), condition(std::move(condition_)), body(std::move(body_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 
@@ -148,8 +149,8 @@ struct ForStmt : public Statement {
     ForStmt(std::unique_ptr<Statement> initializer_,
             std::unique_ptr<Expression> condition_,
             std::unique_ptr<Expression> increment_,
-            std::unique_ptr<Statement> body_)
-        : Statement(NodeType::ForStmt),
+            std::unique_ptr<Statement> body_, int line_)
+        : Statement(NodeType::ForStmt, line_),
           initializer(std::move(initializer_)),
           condition(std::move(condition_)),
           increment(std::move(increment_)),
@@ -158,19 +159,19 @@ struct ForStmt : public Statement {
 };
 
 struct BreakStmt : public Statement {
-    BreakStmt() : Statement(NodeType::BreakStmt) {}
+    explicit BreakStmt(int line_) : Statement(NodeType::BreakStmt, line_) {}
     void accept(ASTVisitor& visitor) override;
 };
 
 struct ContinueStmt : public Statement {
-    ContinueStmt() : Statement(NodeType::ContinueStmt) {}
+    explicit ContinueStmt(int line_) : Statement(NodeType::ContinueStmt, line_) {}
     void accept(ASTVisitor& visitor) override;
 };
 
 struct PrintStmt : public Statement {
     std::unique_ptr<Expression> expr;
 
-    explicit PrintStmt(std::unique_ptr<Expression> expr_) : Statement(NodeType::PrintStmt), expr(std::move(expr_)) {}
+    explicit PrintStmt(std::unique_ptr<Expression> expr_, int line_) : Statement(NodeType::PrintStmt, line_), expr(std::move(expr_)) {}
     void accept(ASTVisitor& visitor) override;
 };
 

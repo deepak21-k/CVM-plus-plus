@@ -34,6 +34,13 @@ void disassembleChunk(const Chunk& chunk, const std::string& name) {
 }
 
 size_t disassembleInstruction(const Chunk& chunk, size_t offset) {
+    int line = chunk.getLine(offset);
+    if (offset > 0 && line == chunk.getLine(offset - 1)) {
+        std::cout << "   | ";
+    } else {
+        std::cout << std::right << std::setfill(' ') << std::setw(4) << line << " ";
+    }
+
     std::cout << std::right << std::setfill('0') << std::setw(4) << offset 
               << "  " << std::setfill(' ') << std::left;
 

@@ -107,6 +107,7 @@ std::unique_ptr<Statement> Parser::statement() {
 }
 
 std::unique_ptr<Statement> Parser::ifStatement() {
+    int line = previous().line;
     consume(TokenType::LPAREN, "Expect '(' after 'if'.");
     std::unique_ptr<Expression> condition = expression();
     consume(TokenType::RPAREN, "Expect ')' after if condition.");
@@ -118,19 +119,21 @@ std::unique_ptr<Statement> Parser::ifStatement() {
         elseBranch = statement();
     }
 
-    return std::make_unique<IfStmt>(std::move(condition), std::move(thenBranch), std::move(elseBranch));
+    return std::make_unique<IfStmt>(std::move(condition), std::move(thenBranch), std::move(elseBranch), line);
 }
 
 std::unique_ptr<Statement> Parser::whileStatement() {
+    int line = previous().line;
     consume(TokenType::LPAREN, "Expect '(' after 'while'.");
     std::unique_ptr<Expression> condition = expression();
     consume(TokenType::RPAREN, "Expect ')' after while condition.");
     std::unique_ptr<Statement> body = statement();
 
-    return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+    return std::make_unique<WhileStmt>(std::move(condition), std::move(body), line);
 }
 
 std::unique_ptr<Statement> Parser::forStatement() {
+    int line = previous().line;
     consume(TokenType::LPAREN, "Expect '(' after 'for'.");
 
     // for ( <initializer> ; <condition> ; <increment> ) <body>
@@ -157,26 +160,30 @@ std::unique_ptr<Statement> Parser::forStatement() {
     consume(TokenType::RPAREN, "Expect ')' after for clauses.");
 
     std::unique_ptr<Statement> body = statement();
-    return std::make_unique<ForStmt>(std::move(initializer), std::move(condition), std::move(increment), std::move(body));
+    return std::make_unique<ForStmt>(std::move(initializer), std::move(condition), std::move(increment), std::move(body), line);
 }
 
 std::unique_ptr<Statement> Parser::breakStatement() {
+    int line = previous().line;
     consume(TokenType::SEMICOLON, "Expect ';' after 'break'.");
-    return std::make_unique<BreakStmt>();
+    return std::make_unique<BreakStmt>(line);
 }
 
 std::unique_ptr<Statement> Parser::continueStatement() {
+    int line = previous().line;
     consume(TokenType::SEMICOLON, "Expect ';' after 'continue'.");
-    return std::make_unique<ContinueStmt>();
+    return std::make_unique<ContinueStmt>(line);
 }
 
 std::unique_ptr<Statement> Parser::printStatement() {
+    int line = previous().line;
     std::unique_ptr<Expression> value = expression();
     consume(TokenType::SEMICOLON, "Expect ';' after value.");
-    return std::make_unique<PrintStmt>(std::move(value));
+    return std::make_unique<PrintStmt>(std::move(value), line);
 }
 
 std::unique_ptr<Statement> Parser::blockStatement() {
+    int line = previous().line;
     std::vector<std::unique_ptr<Statement>> statements;
     while (!check(TokenType::RBRACE) && !isAtEnd()) {
         auto decl = declaration();
@@ -185,13 +192,14 @@ std::unique_ptr<Statement> Parser::blockStatement() {
         }
     }
     consume(TokenType::RBRACE, "Expect '}' after block.");
-    return std::make_unique<BlockStmt>(std::move(statements));
+    return std::make_unique<BlockStmt>(std::move(statements), line);
 }
 
 std::unique_ptr<Statement> Parser::expressionStatement() {
     std::unique_ptr<Expression> expr = expression();
+    int line = previous().line; // Line of the last token in expression
     consume(TokenType::SEMICOLON, "Expect ';' after expression.");
-    return std::make_unique<ExpressionStmt>(std::move(expr));
+    return std::make_unique<ExpressionStmt>(std::move(expr), line);
 }
 
 std::unique_ptr<Expression> Parser::expression() {
@@ -361,7 +369,7 @@ std::unique_ptr<Expression> Parser::primary() {
         return std::make_unique<VariableExpr>(previous());
     }
     if (match({TokenType::INPUT})) {
-        return std::make_unique<InputExpr>();
+        return std::make_unique<InputExpr>(previous().line);
     }
     if (match({TokenType::LPAREN})) {
         std::unique_ptr<Expression> expr = expression();

@@ -3,6 +3,7 @@
 #include "opcode.h"
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 struct Local {
     std::string name;
@@ -14,7 +15,7 @@ class Compiler : public ASTVisitor {
 public:
     Compiler();
     Chunk compile(const std::vector<std::unique_ptr<Statement>>& statements);
-    void reset() { chunk = Chunk(); locals.clear(); freeIds.clear(); variablesCount = 0; currentDepth = 0; loopStack.clear(); }
+    void reset() { chunk = Chunk(); locals.clear(); localsIndex.clear(); freeIds.clear(); variablesCount = 0; currentDepth = 0; loopStack.clear(); currentLine = 0; }
 
     void visitBinaryExpr(BinaryExpr& expr) override;
     void visitUnaryExpr(UnaryExpr& expr) override;
@@ -38,9 +39,11 @@ public:
 private:
     Chunk chunk;
     std::vector<Local> locals;
+    std::unordered_map<std::string, std::vector<int32_t>> localsIndex;
     int variablesCount;
     std::vector<int32_t> freeIds;
     int currentDepth;
+    int currentLine = 0;
     
     int32_t resolveVariable(const std::string& name, bool declare);
     void beginScope();

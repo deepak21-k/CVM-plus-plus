@@ -22,8 +22,8 @@ int32_t VM::peekStack() const {
 
 void VM::execute(const Chunk& chunk) {
     size_t savedSp = sp;
+    size_t ip = 0; // instruction pointer
     try {
-        size_t ip = 0; // instruction pointer
         while (ip < chunk.code.size()) {
         Opcode instruction = static_cast<Opcode>(chunk.code[ip++]);
 
@@ -255,6 +255,13 @@ void VM::execute(const Chunk& chunk) {
         }
     }
     throw RuntimeError("Execution reached end of chunk without HALT");
+    } catch (const RuntimeError& e) {
+        sp = savedSp;
+        int line = (ip > 0) ? chunk.getLine(ip - 1) : -1;
+        if (line > 0 && e.line == 0) {
+            throw RuntimeError(e.rawMsg, line);
+        }
+        throw;
     } catch (...) {
         sp = savedSp;
         throw;
