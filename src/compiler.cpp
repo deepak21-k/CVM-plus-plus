@@ -83,8 +83,14 @@ void Compiler::visitBinaryExpr(BinaryExpr& expr) {
         auto* rightLit = static_cast<LiteralExpr*>(expr.right.get());
         if (leftLit->value.type == TokenType::NUMBER && rightLit->value.type == TokenType::NUMBER) {
             auto tryFold = [&]() -> std::optional<int64_t> {
-                int32_t a = std::stoi(leftLit->value.value);
-                int32_t b = std::stoi(rightLit->value.value);
+                long long aLL = std::stoll(leftLit->value.value);
+                long long bLL = std::stoll(rightLit->value.value);
+                if (aLL > INT32_MAX || aLL < INT32_MIN)
+                    throw CompileError("Integer literal out of range in constant expression");
+                if (bLL > INT32_MAX || bLL < INT32_MIN)
+                    throw CompileError("Integer literal out of range in constant expression");
+                int32_t a = static_cast<int32_t>(aLL);
+                int32_t b = static_cast<int32_t>(bLL);
                 switch (expr.op.type) {
                     case TokenType::PLUS:  return static_cast<int64_t>(a) + static_cast<int64_t>(b);
                     case TokenType::MINUS: return static_cast<int64_t>(a) - static_cast<int64_t>(b);
@@ -215,13 +221,15 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
 }
 
 void Compiler::visitUnaryExpr(UnaryExpr& expr) {
-    // --- Constant folding for literal operands ---
-    if (expr.right->nodeType == NodeType::LiteralExpr) {
+    // --- Attempt constant folding for literal operands ---
+    auto tryFoldUnary = [&]() -> bool {
+        if (expr.right->nodeType != NodeType::LiteralExpr) return false;
         auto* lit = static_cast<LiteralExpr*>(expr.right.get());
+
         if (lit->value.type == TokenType::NUMBER) {
             long long val;
             try { val = std::stoll(lit->value.value); }
-            catch (...) { goto runtime; }
+            catch (...) { return false; }
 
             if (expr.op.type == TokenType::MINUS) {
                 long long result = -val;
@@ -229,38 +237,42 @@ void Compiler::visitUnaryExpr(UnaryExpr& expr) {
                     throw CompileError("Integer overflow in constant negation");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(static_cast<int32_t>(result));
-                return;
+                return true;
             } else if (expr.op.type == TokenType::BIT_NOT) {
                 if (val > INT32_MAX || val < INT32_MIN)
                     throw CompileError("Integer literal out of range");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(~static_cast<int32_t>(val));
-                return;
+                return true;
             } else if (expr.op.type == TokenType::NOT) {
                 if (val > INT32_MAX || val < INT32_MIN)
                     throw CompileError("Integer literal out of range");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(val == 0 ? 1 : 0);
-                return;
+                return true;
             } else if (expr.op.type == TokenType::PLUS) {
                 if (val > INT32_MAX || val < INT32_MIN)
                     throw CompileError("Integer literal out of range");
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(static_cast<int32_t>(val));
-                return;
+                return true;
             }
         }
+
         if (lit->value.type == TokenType::TRUE_LIT || lit->value.type == TokenType::FALSE_LIT) {
             int32_t boolVal = (lit->value.type == TokenType::TRUE_LIT) ? 1 : 0;
             if (expr.op.type == TokenType::NOT) {
                 chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT));
                 chunk.writeInt(boolVal == 0 ? 1 : 0);
-                return;
+                return true;
             }
         }
-    }
-    // --- Runtime evaluation for non-literal operands ---
-runtime:
+        return false;
+    };
+
+    if (tryFoldUnary()) return;
+
+    // --- Runtime evaluation ---
     expr.right->accept(*this);
     if (expr.op.type == TokenType::BIT_NOT) {
         chunk.write(static_cast<uint8_t>(Opcode::BIT_NOT));
@@ -269,7 +281,7 @@ runtime:
     } else if (expr.op.type == TokenType::MINUS) {
         chunk.write(static_cast<uint8_t>(Opcode::NEG));
     } else if (expr.op.type == TokenType::PLUS) {
-        // Unary plus is a no-op — value is already on the stack
+        // Unary plus is a no-op -- value is already on the stack
     } else {
         throw CompileError("Unknown unary operator");
     }

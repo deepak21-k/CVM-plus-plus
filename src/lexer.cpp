@@ -141,6 +141,12 @@ std::vector<Token> Lexer::tokenize() {
                     tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
                     continue;
                 }
+                // Reject leading-zero decimals (e.g., 0123) to avoid C/Java confusion.
+                // Use 0o for octal. At this point peek() is still on '0', peekNext() is the next char.
+                char nextCh = peekNext();
+                if (nextCh >= '1' && nextCh <= '9') {
+                    throw LexError("Leading zeros not allowed in decimal literals (use 0o for octal)", line, column);
+                }
             }
             std::string num;
             num.reserve(16);

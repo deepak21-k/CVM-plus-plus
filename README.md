@@ -171,6 +171,8 @@ print true + 1;     // 2  (booleans are integers)
 if (42) { print 1; } // 1 (non-zero = truthy)
 ```
 
+> **Note:** `&&` and `||` always evaluate to `0` or `1` (boolean normalization via the `NORMALIZE` opcode). Unlike JavaScript or Python where `0 || 5` returns `5`, CVM++ returns `1`. This is by design — logical operators produce strict boolean results.
+
 ---
 
 ## Architecture

@@ -77,7 +77,7 @@ std::unique_ptr<Statement> Parser::declaration() {
     try {
         if (match({TokenType::LET})) return letDeclaration();
         return statement();
-    } catch (const std::runtime_error& error) {
+    } catch (const ParseError& error) {
         // Simple error reporting and recovery
         std::cerr << error.what() << '\n';
         synchronize();
