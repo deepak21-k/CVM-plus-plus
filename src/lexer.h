@@ -14,10 +14,10 @@ private:
     int line;
     int column;
 
-    char peek() const;
-    char peekNext() const;
+    [[nodiscard]] char peek() const;
+    [[nodiscard]] char peekNext() const;
     char advance();
-    bool isAtEnd() const;
+    [[nodiscard]] bool isAtEnd() const;
 
     void skipWhitespace();
     Token createToken(TokenType type, const std::string& value);

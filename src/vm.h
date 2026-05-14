@@ -1,5 +1,6 @@
 #pragma once
 #include "opcode.h"
+#include "chunk.h"
 #include <array>
 #include <vector>
 
@@ -12,7 +13,7 @@ public:
     void reset() { sp = 0; variables.clear(); }
 
     // For testing/debugging, we can inspect stack or variables
-    int32_t peekStack() const;
+    [[nodiscard]] int32_t peekStack() const;
 
 private:
     static constexpr size_t STACK_MAX = 2048;

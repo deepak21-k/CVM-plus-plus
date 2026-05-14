@@ -135,6 +135,8 @@ for (;;) {
 | **Logical**    | `&&` `\|\|` `!`                            |
 | **Bitwise**    | `&` `\|` `^` `<<` `>>` `~`               |
 
+> **Note:** CVM++ performs strictly integer-based math. Division (`/`) and modulo (`%`) of negative numbers match C++ semantics by truncating toward zero, rather than flooring (as Python does).
+
 ### Numeric Literals
 
 ```javascript

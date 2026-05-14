@@ -9,11 +9,15 @@ class CVMError : public std::runtime_error {
 public:
     int line;
     int column;
-    std::string rawMsg;
 
     CVMError(const std::string& phase, const std::string& msg, int line_ = 0, int col = 0)
         : std::runtime_error(formatMessage(phase, msg, line_, col)),
           line(line_), column(col), rawMsg(msg) {}
+
+    const std::string& getRawMsg() const { return rawMsg; }
+
+private:
+    std::string rawMsg;
 
 private:
     static std::string formatMessage(const std::string& phase, const std::string& msg, int line_, int col) {

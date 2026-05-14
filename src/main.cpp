@@ -31,10 +31,18 @@ void run(const std::string& source, Compiler& compiler, VM& vm, const RunOptions
         if (!opts.dumpOnly) {
             vm.execute(chunk);
         }
+    } catch (const LexError& e) {
+        std::cerr << "Error: " << e.what() << '\n';
+    } catch (const ParseError& e) {
+        std::cerr << "Error: " << e.what() << '\n';
+    } catch (const CompileError& e) {
+        std::cerr << "Error: " << e.what() << '\n';
+    } catch (const RuntimeError& e) {
+        std::cerr << "Error: " << e.what() << '\n';
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << '\n';
         compiler.reset();
-        vm.reset();  // Reset VM variables to stay in sync with compiler
+        vm.reset();
     }
 }
 

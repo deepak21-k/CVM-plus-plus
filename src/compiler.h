@@ -1,6 +1,7 @@
 #pragma once
 #include "ast.h"
 #include "opcode.h"
+#include "chunk.h"
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -40,9 +41,9 @@ private:
     Chunk chunk;
     std::vector<Local> locals;
     std::unordered_map<std::string, std::vector<int32_t>> localsIndex;
-    int variablesCount;
+    int variablesCount = 0;
     std::vector<int32_t> freeIds;
-    int currentDepth;
+    int currentDepth = 0;
     int currentLine = 0;
     
     int32_t resolveVariable(const std::string& name, bool declare);

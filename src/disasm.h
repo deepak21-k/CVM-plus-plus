@@ -1,5 +1,6 @@
 #pragma once
 #include "opcode.h"
+#include "chunk.h"
 #include <string>
 
 void disassembleChunk(const Chunk& chunk, const std::string& name);

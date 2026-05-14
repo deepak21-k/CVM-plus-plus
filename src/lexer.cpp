@@ -118,27 +118,45 @@ std::vector<Token> Lexer::tokenize() {
                     std::string hex;
                     while (!isAtEnd() && std::isxdigit(static_cast<unsigned char>(peek()))) hex += advance();
                     if (hex.empty()) throw LexError("Expected hex digits after '0x'", line, column);
-                    long long val = std::stoll(hex, nullptr, 16);
-                    if (val > INT32_MAX || val < INT32_MIN) throw LexError("Hex literal out of int32 range", line, column);
-                    tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
+                    try {
+                        long long val = std::stoll(hex, nullptr, 16);
+                        if (val > INT32_MAX || val < INT32_MIN) throw LexError("Hex literal out of int32 range", line, column);
+                        tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
+                    } catch (const std::out_of_range&) {
+                        throw LexError("Hex literal out of int32 range", line, column);
+                    } catch (const std::invalid_argument&) {
+                        throw LexError("Invalid hex literal", line, column);
+                    }
                     continue;
                 } else if (next == 'b' || next == 'B') {
                     advance(); advance(); // skip '0b'
                     std::string bin;
                     while (!isAtEnd() && (peek() == '0' || peek() == '1')) bin += advance();
                     if (bin.empty()) throw LexError("Expected binary digits after '0b'", line, column);
-                    long long val = std::stoll(bin, nullptr, 2);
-                    if (val > INT32_MAX || val < INT32_MIN) throw LexError("Binary literal out of int32 range", line, column);
-                    tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
+                    try {
+                        long long val = std::stoll(bin, nullptr, 2);
+                        if (val > INT32_MAX || val < INT32_MIN) throw LexError("Binary literal out of int32 range", line, column);
+                        tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
+                    } catch (const std::out_of_range&) {
+                        throw LexError("Binary literal out of int32 range", line, column);
+                    } catch (const std::invalid_argument&) {
+                        throw LexError("Invalid binary literal", line, column);
+                    }
                     continue;
                 } else if (next == 'o' || next == 'O') {
                     advance(); advance(); // skip '0o'
                     std::string oct;
                     while (!isAtEnd() && peek() >= '0' && peek() <= '7') oct += advance();
                     if (oct.empty()) throw LexError("Expected octal digits after '0o'", line, column);
-                    long long val = std::stoll(oct, nullptr, 8);
-                    if (val > INT32_MAX || val < INT32_MIN) throw LexError("Octal literal out of int32 range", line, column);
-                    tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
+                    try {
+                        long long val = std::stoll(oct, nullptr, 8);
+                        if (val > INT32_MAX || val < INT32_MIN) throw LexError("Octal literal out of int32 range", line, column);
+                        tokens.push_back(createToken(TokenType::NUMBER, std::to_string(val)));
+                    } catch (const std::out_of_range&) {
+                        throw LexError("Octal literal out of int32 range", line, column);
+                    } catch (const std::invalid_argument&) {
+                        throw LexError("Invalid octal literal", line, column);
+                    }
                     continue;
                 }
                 // Reject leading-zero decimals (e.g., 0123) to avoid C/Java confusion.

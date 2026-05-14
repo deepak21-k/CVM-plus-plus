@@ -2,7 +2,6 @@
 #include "lexer.h"
 #include "ast.h"
 #include <vector>
-#include <stdexcept>
 #include <memory>
 
 class Parser {
@@ -15,7 +14,7 @@ private:
     size_t current;
 
     // Helpers
-    const Token& peek() const;
+    [[nodiscard]] const Token& peek() const;
     const Token& previous() const;
     const Token& advance();
     bool check(TokenType type) const;

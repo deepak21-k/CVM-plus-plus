@@ -3,17 +3,37 @@
 #include "error.h"
 #include <optional>
 
-Compiler::Compiler() : variablesCount(0), currentDepth(0) {}
+Compiler::Compiler() {}
 
 Chunk Compiler::compile(const std::vector<std::unique_ptr<Statement>>& statements) {
     chunk = Chunk();
-    chunk.code.reserve(1024);
-    // Do not clear variables here; REPL relies on persisting local variables table.
-    for (const auto& stmt : statements) {
-        stmt->accept(*this);
+    chunk.reserve(1024);
+    // Note: Do not clear compiler state (locals, variablesCount) here!
+    // The REPL relies on persisting local variables across `compile()` calls.
+    // If scope management (beginScope/endScope) has bugs, state corruption 
+    // compounds across REPL lines. Unrecoverable errors must call reset().
+    size_t initialLocals = locals.size();
+    int initialDepth = currentDepth;
+
+    try {
+        for (const auto& stmt : statements) {
+            stmt->accept(*this);
+        }
+        chunk.write(static_cast<uint8_t>(Opcode::HALT), currentLine);
+        return chunk;
+    } catch (...) {
+        currentDepth = initialDepth;
+        while (locals.size() > initialLocals) {
+            freeIds.push_back(locals.back().id);
+            auto& stack = localsIndex[locals.back().name];
+            stack.pop_back();
+            if (stack.empty()) {
+                localsIndex.erase(locals.back().name);
+            }
+            locals.pop_back();
+        }
+        throw;
     }
-    chunk.write(static_cast<uint8_t>(Opcode::HALT), currentLine);
-    return chunk;
 }
 
 int32_t Compiler::resolveVariable(const std::string& name, bool declare) {
@@ -56,6 +76,10 @@ void Compiler::beginScope() {
 void Compiler::endScope() {
     currentDepth--;
     while (!locals.empty() && locals.back().depth > currentDepth) {
+        // Note: We free the ID here so it can be reused by a new declaration.
+        // The VM's `variables` array retains the stale value at this slot, but
+        // this is safe because the compiler enforces that SET_VAR is always
+        // emitted before GET_VAR for any reused ID.
         freeIds.push_back(locals.back().id);
         auto& stack = localsIndex[locals.back().name];
         stack.pop_back();
@@ -323,10 +347,10 @@ void Compiler::visitLiteralExpr(LiteralExpr& expr) {
         }
     } else if (expr.value.type == TokenType::TRUE_LIT) {
         chunk.write(static_cast<uint8_t>(Opcode::PUSH_BOOL), currentLine);
-        chunk.write(1, currentLine);
+        chunk.writeByte(1, currentLine);
     } else if (expr.value.type == TokenType::FALSE_LIT) {
         chunk.write(static_cast<uint8_t>(Opcode::PUSH_BOOL), currentLine);
-        chunk.write(0, currentLine);
+        chunk.writeByte(0, currentLine);
     } else {
         throw CompileError("Unknown literal type");
     }

@@ -2,29 +2,33 @@
 #include <iostream>
 #include <iomanip>
 
-static size_t simpleInstruction(const std::string& name, size_t offset) {
+namespace {
+
+size_t simpleInstruction(const std::string& name, size_t offset) {
     std::cout << name << '\n';
     return offset + 1;
 }
 
-static size_t constantInstruction(const std::string& name, const Chunk& chunk, size_t offset) {
+size_t constantInstruction(const std::string& name, const Chunk& chunk, size_t offset) {
     int32_t val = chunk.readInt(offset + 1);
     std::cout << std::left << std::setw(16) << name << val << '\n';
     return offset + 5;
 }
 
-static size_t byteInstruction(const std::string& name, const Chunk& chunk, size_t offset) {
+size_t byteInstruction(const std::string& name, const Chunk& chunk, size_t offset) {
     uint8_t val = chunk.code[offset + 1];
     std::cout << std::left << std::setw(16) << name << static_cast<int>(val) << '\n';
     return offset + 2;
 }
 
-static size_t jumpInstruction(const std::string& name, int sign, const Chunk& chunk, size_t offset) {
+size_t jumpInstruction(const std::string& name, int sign, const Chunk& chunk, size_t offset) {
     int32_t jump = chunk.readInt(offset + 1);
     size_t target = offset + 5 + (sign * jump);
     std::cout << std::left << std::setw(16) << name << offset << " -> " << target << '\n';
     return offset + 5;
 }
+
+} // namespace
 
 void disassembleChunk(const Chunk& chunk, const std::string& name) {
     std::cout << "== " << name << " ==\n";
