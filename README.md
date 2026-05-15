@@ -11,6 +11,7 @@
 - **Constant Folding** — Binary, unary, and logical expressions on literal operands are evaluated at compile time, eliminating runtime overhead.
 - **Deep Block Scoping** — Full lexical scoping with variable shadowing. Nested scopes clean up automatically on exit.
 - **Short-Circuit Evaluation** — `&&` and `||` skip the right operand when the result is already determined.
+- **Memory-Optimized Line Mapping** — Uses Run-Length Encoding (RLE) to store source-line info, dramatically reducing the memory footprint of compiled bytecode.
 - **Bytecode Disassembler** — Human-readable bytecode dump via `--dump` flag or REPL `disasm on` command.
 - **Interactive REPL** — Execute code line-by-line with robust error recovery. Valid variable bindings are preserved across lines even if a subsequent line contains a syntax or runtime error.
 - **Portable Arithmetic** — Right shifts on negative integers use explicit sign-bit replication, avoiding implementation-defined C++ behavior.
@@ -200,7 +201,7 @@ flowchart LR
 | **Lexer**        | `lexer.cpp` `lexer.h`   | Tokenizes source text. Handles single-line/block comments, hex/binary/octal literals, and keywords. |
 | **Parser**       | `parser.cpp` `parser.h` | Recursive-descent parser producing a typed AST. Uses `NodeType` enum for O(1) node identification.  |
 | **Compiler**     | `compiler.cpp` `compiler.h` | Single-pass AST visitor emitting bytecode. Constant folding (binary, unary, logical) and short-circuit evaluation. |
-| **Bytecode**     | `chunk.h` `opcode.h`    | Defines the bytecode format, opcodes, and the `Chunk` container which stores code and source-line mapping. |
+| **Bytecode**     | `chunk.h` `opcode.h`    | Defines the bytecode format, opcodes, and the `Chunk` container which stores code and RLE-optimized source-line mapping. |
 | **VM**           | `vm.cpp` `vm.h`         | Stack-based interpreter with bounded operations, portable arithmetic shifts, and runtime error trapping. |
 | **Disassembler** | `disasm.cpp` `disasm.h` | Pretty-prints bytecode with opcodes, operands, and absolute jump targets.                           |
 

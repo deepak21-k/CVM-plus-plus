@@ -23,9 +23,10 @@ int32_t VM::peekStack() const {
 void VM::execute(const Chunk& chunk) {
     size_t savedSp = sp;
     size_t ip = 0; // instruction pointer
+    const uint8_t* code = chunk.code.data();
     try {
         while (ip < chunk.code.size()) {
-            Opcode instruction = static_cast<Opcode>(chunk.code[ip++]);
+            Opcode instruction = static_cast<Opcode>(code[ip++]);
     
             switch (instruction) {
                 case Opcode::PUSH_INT: {
@@ -35,7 +36,7 @@ void VM::execute(const Chunk& chunk) {
                     break;
                 }
                 case Opcode::PUSH_BOOL: {
-                    int32_t val = chunk.code[ip++];
+                    int32_t val = code[ip++];
                     push(val);
                     break;
                 }

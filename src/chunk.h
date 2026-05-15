@@ -1,39 +1,59 @@
 #pragma once
 #include <cstdint>
 #include <vector>
+#include <algorithm>
 #include "error.h"
+
+struct LineEntry {
+    size_t offset;
+    int line;
+};
 
 struct Chunk {
     std::vector<uint8_t> code;
-    std::vector<int> lines;
+    std::vector<LineEntry> lines;
     
     inline void reserve(size_t capacity) {
         code.reserve(capacity);
-        lines.reserve(capacity);
+        // lines will be much smaller with RLE, so we don't reserve as much
+        lines.reserve(capacity / 4);
     }
 
     inline void write(uint8_t byte, int line) {
         code.push_back(byte);
-        lines.push_back(line);
+        if (lines.empty() || lines.back().line != line) {
+            lines.push_back({code.size() - 1, line});
+        }
     }
 
     inline void writeByte(uint8_t byte, int line) {
-        code.push_back(byte);
-        lines.push_back(line);
+        write(byte, line);
     }
     
     inline void writeInt(int32_t value, int line) {
-        code.push_back((value >> 24) & 0xFF); lines.push_back(line);
-        code.push_back((value >> 16) & 0xFF); lines.push_back(line);
-        code.push_back((value >> 8) & 0xFF); lines.push_back(line);
-        code.push_back(value & 0xFF); lines.push_back(line);
+        size_t startOffset = code.size();
+        code.push_back((value >> 24) & 0xFF);
+        code.push_back((value >> 16) & 0xFF);
+        code.push_back((value >> 8) & 0xFF);
+        code.push_back(value & 0xFF);
+        
+        if (lines.empty() || lines.back().line != line) {
+            lines.push_back({startOffset, line});
+        }
     }
 
     [[nodiscard]] int getLine(size_t offset) const {
-        if (offset < lines.size()) {
-            return lines[offset];
-        }
-        return -1;
+        if (lines.empty()) return -1;
+
+        // Binary search to find the entry with offset > given offset
+        auto it = std::upper_bound(lines.begin(), lines.end(), offset,
+            [](size_t val, const LineEntry& entry) {
+                return val < entry.offset;
+            });
+
+        // The correct line is the one before the first entry that is greater than offset
+        if (it == lines.begin()) return lines.front().line;
+        return std::prev(it)->line;
     }
 
     [[nodiscard]] int32_t readInt(size_t offset) const {
