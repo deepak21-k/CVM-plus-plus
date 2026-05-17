@@ -4,6 +4,24 @@
 
 [![CI](https://github.com/Komal-ai417/CVM-plus-plus/actions/workflows/ci.yml/badge.svg)](https://github.com/Komal-ai417/CVM-plus-plus/actions/workflows/ci.yml)
 
+## Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Build Instructions](#build-instructions)
+- [Usage](#usage)
+  - [REPL Mode](#repl-mode)
+  - [Script Execution](#script-execution)
+  - [Bytecode Dump](#bytecode-dump)
+- [Language Reference](#language-reference)
+- [Tests](#tests)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
 ## Features
 
 - **Stack-Based VM** — Executes tightly packed bytecode with bounded stack operations and runtime overflow/underflow protection.
@@ -19,7 +37,36 @@
 
 ---
 
-## Building
+## Architecture
+
+```mermaid
+flowchart LR
+    A["Source Code"] --> B["Lexer"]
+    B -- "Tokens" --> C["Parser"]
+    C -- "AST" --> D["Compiler"]
+    D -- "Bytecode" --> E["Virtual Machine"]
+    D -. "--dump" .-> F["Disassembler"]
+
+    style A fill:#2d2d2d,stroke:#7c3aed,color:#e2e8f0
+    style B fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style C fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style D fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
+    style E fill:#064e3b,stroke:#10b981,color:#e2e8f0
+    style F fill:#44403c,stroke:#a8a29e,color:#e2e8f0,stroke-dasharray: 5 5
+```
+
+| Layer            | File(s)                  | Description                                                                                         |
+| :--------------- | :----------------------- | :-------------------------------------------------------------------------------------------------- |
+| **Lexer**        | `lexer.cpp` `lexer.h`   | Tokenizes source text. Handles single-line/block comments, hex/binary/octal literals, and keywords. |
+| **Parser**       | `parser.cpp` `parser.h` | Recursive-descent parser producing a typed AST. Uses `NodeType` enum for O(1) node identification.  |
+| **Compiler**     | `compiler.cpp` `compiler.h` | Single-pass AST visitor emitting bytecode. Constant folding (binary, unary, logical) and short-circuit evaluation. |
+| **Bytecode**     | `chunk.h` `opcode.h`    | Defines the bytecode format, opcodes, and the `Chunk` container which stores code and RLE-optimized source-line mapping. |
+| **VM**           | `vm.cpp` `vm.h`         | Stack-based interpreter with bounded operations, portable arithmetic shifts, and runtime error trapping. |
+| **Disassembler** | `disasm.cpp` `disasm.h` | Pretty-prints bytecode with opcodes, operands, and absolute jump targets.                           |
+
+---
+
+## Getting Started
 
 ### Prerequisites
 
@@ -175,35 +222,6 @@ if (42) { print 1; } // 1 (non-zero = truthy)
 ```
 
 > **Note:** `&&` and `||` always evaluate to `0` or `1` (boolean normalization via the `NORMALIZE` opcode). Unlike JavaScript or Python where `0 || 5` returns `5`, CVM++ returns `1`. This is by design — logical operators produce strict boolean results.
-
----
-
-## Architecture
-
-```mermaid
-flowchart LR
-    A["Source Code"] --> B["Lexer"]
-    B -- "Tokens" --> C["Parser"]
-    C -- "AST" --> D["Compiler"]
-    D -- "Bytecode" --> E["Virtual Machine"]
-    D -. "--dump" .-> F["Disassembler"]
-
-    style A fill:#2d2d2d,stroke:#7c3aed,color:#e2e8f0
-    style B fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
-    style C fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
-    style D fill:#1e3a5f,stroke:#3b82f6,color:#e2e8f0
-    style E fill:#064e3b,stroke:#10b981,color:#e2e8f0
-    style F fill:#44403c,stroke:#a8a29e,color:#e2e8f0,stroke-dasharray: 5 5
-```
-
-| Layer            | File(s)                  | Description                                                                                         |
-| :--------------- | :----------------------- | :-------------------------------------------------------------------------------------------------- |
-| **Lexer**        | `lexer.cpp` `lexer.h`   | Tokenizes source text. Handles single-line/block comments, hex/binary/octal literals, and keywords. |
-| **Parser**       | `parser.cpp` `parser.h` | Recursive-descent parser producing a typed AST. Uses `NodeType` enum for O(1) node identification.  |
-| **Compiler**     | `compiler.cpp` `compiler.h` | Single-pass AST visitor emitting bytecode. Constant folding (binary, unary, logical) and short-circuit evaluation. |
-| **Bytecode**     | `chunk.h` `opcode.h`    | Defines the bytecode format, opcodes, and the `Chunk` container which stores code and RLE-optimized source-line mapping. |
-| **VM**           | `vm.cpp` `vm.h`         | Stack-based interpreter with bounded operations, portable arithmetic shifts, and runtime error trapping. |
-| **Disassembler** | `disasm.cpp` `disasm.h` | Pretty-prints bytecode with opcodes, operands, and absolute jump targets.                           |
 
 ---
 
