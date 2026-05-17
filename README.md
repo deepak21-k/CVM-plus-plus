@@ -239,9 +239,3 @@ Get-ChildItem .\tests\*.cvm | ForEach-Object { Write-Host "=== $($_.Name) ===" ;
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details on how to build the project, our architectural rules, and the pull request process.
-
----
-
-## License
-
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.

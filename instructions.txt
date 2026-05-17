@@ -1,0 +1,49 @@
+CVM++ Compilation and Execution Instructions
+=============================================
+
+This document provides instructions on how to build the compiler and virtual machine, and how to execute CVM++ source files.
+
+1. Prerequisites
+----------------
+- A C++17 compatible compiler (GCC 7+, Clang 5+, or MSVC 2017+)
+- CMake 3.10 or higher
+
+2. Building the Project
+-----------------------
+Open a terminal in the CVM-plus-plus root directory and run the following CMake commands:
+
+    cmake -B build -DCMAKE_BUILD_TYPE=Release
+    cmake --build build --config Release
+
+This will create the executable `cvm` (or `cvm.exe` on Windows) inside the `build/` directory.
+
+3. Running a Program
+--------------------
+To run a CVM++ program (like the provided sample files), pass the file path to the executable:
+
+    ./build/cvm truth_machine.cvm
+    ./build/cvm calculator.cvm
+
+4. Compiling to Bytecode (Inspection)
+-------------------------------------
+You can view the compiled bytecode of a program without running it by using the `--dump` flag:
+
+    ./build/cvm --dump calculator.cvm
+
+5. Interactive REPL Mode
+------------------------
+To launch the interactive REPL (Read-Eval-Print Loop), run the executable without any arguments:
+
+    ./build/cvm
+
+Once inside, you can type statements directly:
+    > let x = 10;
+    > print x * 2;
+    20
+
+To see the bytecode as you type, enable disassembly mode:
+    > disasm on
+    > print 5 + 5;
+
+To exit the REPL, type:
+    > exit
