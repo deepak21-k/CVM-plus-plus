@@ -8,10 +8,10 @@ Compiler::Compiler() {}
 Chunk Compiler::compile(const std::vector<std::unique_ptr<Statement>>& statements) {
     chunk = Chunk();
     chunk.reserve(1024);
-    // Note: Do not clear compiler state (locals, variablesCount) here!
-    // The REPL relies on persisting local variables across `compile()` calls.
-    // If scope management (beginScope/endScope) has bugs, state corruption 
-    // compounds across REPL lines. Unrecoverable errors must call reset().
+   // Note: Compiler state (locals, variablesCount) must not be cleared here.
+// The REPL requires this state to persist across sequential `compile()` executions.
+// Be aware that any bugs in scope management (beginScope/endScope) will accumulate 
+// state corruption across REPL lines. Use `reset()` to recover from critical errors.
     size_t initialLocals = locals.size();
     int initialDepth = currentDepth;
 
@@ -47,7 +47,7 @@ int32_t Compiler::resolveVariable(const std::string& name, bool declare) {
             }
         }
         
-        // Needs declaring
+        // Needs Declaring
         int32_t id;
         if (!freeIds.empty()) {
             id = freeIds.back();
