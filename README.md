@@ -212,7 +212,7 @@ let x = input;      // reads an integer from stdin
 
 ### Booleans
 
-Booleans are a subset of integers. `true` is `1`, `false` is `0`. Any non-zero integer is truthy in conditional contexts. The `NORMALIZE` opcode converts any non-zero value to `1` for logical consistency:
+Booleans function as a subset of integers, with 1 representing true and 0 representing false. While conditional contexts evaluate any non-zero integer as truthy, the NORMALIZE opcode strictly converts all non-zero values to 1 to maintain logical consistency:
 
 ```javascript
 print true;         // 1
