@@ -10,8 +10,8 @@
 static constexpr const char* CVM_VERSION = "1.1.0";
 
 struct RunOptions {
-    bool dumpBytecode = false;  // REPL: show disassembly alongside execution
-    bool dumpOnly = false;      // CLI: disassemble without executing
+    bool dumpBytecode = false;  // REPL: Show disassembly alongside execution.
+    bool dumpOnly = false;      // CLI: disassemble without executing.
 };
 
 void run(const std::string& source, Compiler& compiler, VM& vm, const RunOptions& opts) {
