@@ -1,3 +1,14 @@
+/**
+ * @file opcode.h
+ * @brief Bytecode instruction set definition for the CVM++ virtual machine.
+ *
+ * Defines the complete Opcode enum as uint8_t values used by the compiler
+ * to emit bytecode and by the VM to execute programs. The instruction set
+ * covers arithmetic, comparison, bitwise, logical, variable access, control
+ * flow, and I/O operations. All opcodes are designed for compact single-byte
+ * encoding with inline operands for maximum bytecode density.
+ */
+
 #pragma once
 #include <cstdint>
 #include <string>
