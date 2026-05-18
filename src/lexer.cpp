@@ -1,3 +1,13 @@
+/**
+ * @file lexer.cpp
+ * @brief Lexer/tokenizer implementation for the CVM++ language.
+ *
+ * Converts raw source text into a flat vector of Tokens with full location
+ * tracking. Handles single-line and block comments, numeric literals with
+ * base prefixes (0x/0b/0o), multi-character operators, and keyword
+ * recognition via an unordered_map lookup table.
+ */
+
 #include "lexer.h"
 #include "error.h"
 #include <cctype>
