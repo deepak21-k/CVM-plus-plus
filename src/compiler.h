@@ -1,3 +1,15 @@
+/**
+ * @file compiler.h
+ * @brief Single-pass AST-to-bytecode compiler with constant folding.
+ *
+ * The Compiler implements the ASTVisitor interface to walk the AST and emit
+ * dense bytecode directly into a Chunk. Features include compile-time constant
+ * folding for binary, unary, and logical expressions, short-circuit evaluation,
+ * deep block scoping with variable shadowing and slot reuse, and a LoopContext
+ * stack for managing break/continue jumps in nested loops. REPL-aware design
+ * allows variable bindings to persist across compilation calls.
+ */
+
 #pragma once
 #include "ast.h"
 #include "opcode.h"
