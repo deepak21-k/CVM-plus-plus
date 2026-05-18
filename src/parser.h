@@ -1,3 +1,14 @@
+/**
+ * @file parser.h
+ * @brief Recursive-descent parser class declaration for CVM++.
+ *
+ * The Parser consumes a token vector and produces a typed AST using a
+ * precedence-climbing approach with the full operator precedence chain:
+ * assignment, logical OR/AND, bitwise OR/XOR/AND, equality, comparison,
+ * shift, term, factor, unary, postfix, and primary. Supports error recovery
+ * via synchronize() so parsing can continue after encountering syntax errors.
+ */
+
 #pragma once
 #include "lexer.h"
 #include "ast.h"
