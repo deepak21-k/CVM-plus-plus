@@ -1,3 +1,13 @@
+/**
+ * @file disasm.cpp
+ * @brief Bytecode disassembler implementation for human-readable output.
+ *
+ * Pretty-prints compiled bytecode with source line annotations and resolved
+ * jump targets. Handles four instruction formats (simple, constant, byte, jump)
+ * and collapses consecutive same-line instructions with a '|' marker for
+ * cleaner output. Used by the --dump CLI flag and "disasm on" REPL command.
+ */
+
 #include "disasm.h"
 #include <iostream>
 #include <iomanip>
