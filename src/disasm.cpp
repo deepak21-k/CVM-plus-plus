@@ -12,18 +12,18 @@ size_t simpleInstruction(const std::string& name, size_t offset) {
 size_t constantInstruction(const std::string& name, const Chunk& chunk, size_t offset) {
     int32_t val = chunk.readInt(offset + 1);
     std::cout << std::left << std::setw(16) << name << val << '\n';
-    return offset + 5;
+    return offset + 5; // 1 byte opcode + 4 byte operand
 }
 
 size_t byteInstruction(const std::string& name, const Chunk& chunk, size_t offset) {
     uint8_t val = chunk.code[offset + 1];
     std::cout << std::left << std::setw(16) << name << static_cast<int>(val) << '\n';
-    return offset + 2;
+    return offset + 2; // 1 byte opcode + 1 byte operand
 }
 
 size_t jumpInstruction(const std::string& name, int sign, const Chunk& chunk, size_t offset) {
     int32_t jump = chunk.readInt(offset + 1);
-    size_t target = offset + 5 + (sign * jump);
+    size_t target = offset + 5 + (sign * jump); // target is relative to the byte after the operand
     std::cout << std::left << std::setw(16) << name << offset << " -> " << target << '\n';
     return offset + 5;
 }
@@ -39,6 +39,7 @@ void disassembleChunk(const Chunk& chunk, const std::string& name) {
 
 size_t disassembleInstruction(const Chunk& chunk, size_t offset) {
     int line = chunk.getLine(offset);
+    // Print '|' instead of the line number when consecutive instructions share a line
     if (offset > 0 && line == chunk.getLine(offset - 1)) {
         std::cout << "   | ";
     } else {
