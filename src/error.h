@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include <string>
 
-// Arch #1: Structured error hierarchy for programmatic error handling.
+// Structured error hierarchy for programmatic error handling.
 // All CVM++ errors derive from CVMError, which carries line/column context.
 
 class CVMError : public std::runtime_error {
