@@ -1,3 +1,14 @@
+/**
+ * @file chunk.h
+ * @brief Bytecode container with RLE-compressed source line mapping.
+ *
+ * The Chunk struct stores compiled bytecode as a dense vector of bytes along
+ * with a Run-Length Encoded (RLE) line table that maps bytecode offsets back
+ * to source line numbers. This design dramatically reduces memory usage compared
+ * to storing a line number per instruction, while still enabling accurate
+ * source-level error reporting at runtime via binary-search lookups.
+ */
+
 #pragma once
 #include <cstdint>
 #include <vector>
