@@ -1,3 +1,13 @@
+/**
+ * @file parser.cpp
+ * @brief Recursive-descent parser implementation for CVM++.
+ *
+ * Implements a full precedence-climbing expression parser and statement parser
+ * that consumes tokens and produces a typed AST. Features error recovery via
+ * synchronize() to allow continued parsing after syntax errors, right-associative
+ * assignment, and support for C-style for-loop initialization clauses.
+ */
+
 #include "parser.h"
 #include "error.h"
 #include <iostream>
