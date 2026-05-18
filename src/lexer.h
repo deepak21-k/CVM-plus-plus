@@ -7,7 +7,7 @@
  * with hex (0x), binary (0b), and octal (0o) prefixes, multi-character
  * operators, and 11 reserved keywords. Tracks line and column information
  * for precise error reporting in later compilation stages.
- */
+ **/
 
 #pragma once
 #include "token.h"
