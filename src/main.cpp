@@ -1,3 +1,12 @@
+/**
+ * @file main.cpp
+ * @brief CVM++ entry point — REPL, script runner, and CLI interface.
+ *
+ * Provides three execution modes: interactive REPL with persistent state and
+ * optional bytecode disassembly, single-file script execution, and bytecode
+ * dump mode for debugging. Orchestrates the full compilation pipeline:
+ * source -> Lexer -> Parser -> Compiler -> (optional Disassembler) -> VM.
+ */
 #include "lexer.h"
 #include "parser.h"
 #include "compiler.h"
