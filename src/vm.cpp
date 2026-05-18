@@ -21,8 +21,8 @@ int32_t VM::peekStack() const {
 }
 
 void VM::execute(const Chunk& chunk) {
-    size_t savedSp = sp;
-    size_t ip = 0; // instruction pointer
+    size_t savedSp = sp; // saved so we can restore the stack on error
+    size_t ip = 0;
     const uint8_t* code = chunk.code.data();
     try {
         while (ip < chunk.code.size()) {
@@ -40,6 +40,8 @@ void VM::execute(const Chunk& chunk) {
                     push(val);
                     break;
                 }
+
+                // Arithmetic: intermediate results use int64_t to detect overflow
                 case Opcode::ADD: {
                     int32_t b = pop();
                     int32_t a = pop();
@@ -68,7 +70,7 @@ void VM::execute(const Chunk& chunk) {
                     int32_t b = pop();
                     int32_t a = pop();
                     if (b == 0) throw RuntimeError("Division by zero");
-                    if (a == INT32_MIN && b == -1) throw RuntimeError("Integer overflow in division");
+                    if (a == INT32_MIN && b == -1) throw RuntimeError("Integer overflow in division"); // result would be INT32_MAX + 1
                     push(a / b);
                     break;
                 }
@@ -138,14 +140,15 @@ void VM::execute(const Chunk& chunk) {
                     int32_t b = pop();
                     int32_t a = pop();
                     if (b < 0 || b >= 32) throw RuntimeError("Invalid shift amount");
-                    push(static_cast<int32_t>(static_cast<uint32_t>(a) << b));
+                    push(static_cast<int32_t>(static_cast<uint32_t>(a) << b)); // cast to unsigned avoids UB
                     break;
                 }
                 case Opcode::SHR: {
                     int32_t b = pop();
                     int32_t a = pop();
                     if (b < 0 || b >= 32) throw RuntimeError("Invalid shift amount");
-                    // Portable arithmetic right shift: replicate sign bit into vacated positions
+                    // Portable arithmetic right shift: C++ doesn't guarantee sign-bit
+                    // replication on signed types, so shift as unsigned then fill high bits manually
                     uint32_t ua = static_cast<uint32_t>(a);
                     uint32_t shifted = ua >> b;
                     if (a < 0 && b > 0) {
@@ -166,6 +169,7 @@ void VM::execute(const Chunk& chunk) {
                     break;
                 }
                 case Opcode::NORMALIZE: {
+                    // Collapses any non-zero value to 1 (useful after bitwise ops)
                     int32_t a = pop();
                     push(a == 0 ? 0 : 1);
                     break;
@@ -193,6 +197,7 @@ void VM::execute(const Chunk& chunk) {
                     break;
                 }
                 case Opcode::SET_VAR_PUSH: {
+                    // Like SET_VAR but leaves the value on the stack (e.g. for chained assignments)
                     int32_t id = chunk.readInt(ip);
                     ip += 4;
                     int32_t val = pop();
@@ -215,6 +220,7 @@ void VM::execute(const Chunk& chunk) {
                     break;
                 }
                 case Opcode::JMP: {
+                    // Offset is relative to the byte after the operand
                     int32_t offset = chunk.readInt(ip);
                     ip += 4;
                     size_t newIp = static_cast<size_t>(static_cast<int64_t>(ip) + offset);
