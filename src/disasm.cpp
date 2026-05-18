@@ -25,6 +25,12 @@ size_t constantInstruction(const std::string& name, const Chunk& chunk, size_t o
     return offset + 5; // 1 byte opcode + 4 byte operand
 }
 
+size_t shortInstruction(const std::string& name, const Chunk& chunk, size_t offset) {
+    uint16_t val = chunk.readShort(offset + 1);
+    std::cout << std::left << std::setw(16) << name << val << '\n';
+    return offset + 3; // 1 byte opcode + 2 byte operand
+}
+
 size_t byteInstruction(const std::string& name, const Chunk& chunk, size_t offset) {
     uint8_t val = chunk.code[offset + 1];
     std::cout << std::left << std::setw(16) << name << static_cast<int>(val) << '\n';
@@ -63,6 +69,8 @@ size_t disassembleInstruction(const Chunk& chunk, size_t offset) {
     switch (static_cast<Opcode>(instruction)) {
         case Opcode::PUSH_INT: return constantInstruction("PUSH_INT", chunk, offset);
         case Opcode::PUSH_BOOL: return byteInstruction("PUSH_BOOL", chunk, offset);
+        case Opcode::PUSH_0: return simpleInstruction("PUSH_0", offset);
+        case Opcode::PUSH_1: return simpleInstruction("PUSH_1", offset);
         case Opcode::ADD: return simpleInstruction("ADD", offset);
         case Opcode::SUB: return simpleInstruction("SUB", offset);
         case Opcode::MUL: return simpleInstruction("MUL", offset);
@@ -84,9 +92,9 @@ size_t disassembleInstruction(const Chunk& chunk, size_t offset) {
         case Opcode::NORMALIZE: return simpleInstruction("NORMALIZE", offset);
         case Opcode::NEG: return simpleInstruction("NEG", offset);
         case Opcode::POP: return simpleInstruction("POP", offset);
-        case Opcode::SET_VAR: return constantInstruction("SET_VAR", chunk, offset);
-        case Opcode::GET_VAR: return constantInstruction("GET_VAR", chunk, offset);
-        case Opcode::SET_VAR_PUSH: return constantInstruction("SET_VAR_PUSH", chunk, offset);
+        case Opcode::SET_VAR: return shortInstruction("SET_VAR", chunk, offset);
+        case Opcode::GET_VAR: return shortInstruction("GET_VAR", chunk, offset);
+        case Opcode::SET_VAR_PUSH: return shortInstruction("SET_VAR_PUSH", chunk, offset);
         case Opcode::JMP: return jumpInstruction("JMP", 1, chunk, offset);
         case Opcode::JMP_IF_FALSE: return jumpInstruction("JMP_IF_FALSE", 1, chunk, offset);
         case Opcode::PRINT: return simpleInstruction("PRINT", offset);

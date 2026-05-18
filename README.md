@@ -25,7 +25,9 @@
 ## Features
 
 - **Stack-Based VM** — Executes tightly packed bytecode with bounded stack operations and runtime overflow/underflow protection.
-- **Single-Pass Compiler** — Translates the AST directly into `std::vector<uint8_t>` bytecode in one linear pass.
+- **Direct Threading (Computed Gotos)** — Fetch-decode-execute loop utilizes computed gotos on GCC/Clang to completely eliminate branch mispredictions for extreme opcode throughput.
+- **Aggressive Dead-Code Elimination** — Statically evaluates conditions to strip unreachable branches, while aggressively pruning purely effect-less code statements.
+- **Single-Pass Compiler** — Translates the AST directly into dense, RLE-compressed bytecode in one linear pass.
 - **Constant Folding** — Binary, unary, and logical expressions on literal operands are evaluated at compile time, eliminating runtime overhead.
 - **Deep Block Scoping** — Full lexical scoping with variable shadowing. Nested scopes clean up automatically on exit.
 - **Short-Circuit Evaluation** — `&&` and `||` skip the right operand when the result is already determined.
@@ -60,8 +62,8 @@ flowchart LR
 | **Lexer**        | `lexer.cpp` `lexer.h`   | Tokenizes source text. Handles single-line/block comments, hex/binary/octal literals, and keywords. |
 | **Parser**       | `parser.cpp` `parser.h` | Recursive-descent parser producing a typed AST. Uses `NodeType` enum for O(1) node identification.  |
 | **Compiler**     | `compiler.cpp` `compiler.h` | Single-pass AST visitor emitting bytecode. Constant folding (binary, unary, logical) and short-circuit evaluation. |
-| **Bytecode**     | `chunk.h` `opcode.h`    | Defines the bytecode format, opcodes, and the `Chunk` container which stores code and RLE-optimized source-line mapping. |
-| **VM**           | `vm.cpp` `vm.h`         | Stack-based interpreter with bounded operations, portable arithmetic shifts, and runtime error trapping. |
+| **Bytecode**     | `chunk.h` `opcode.h`    | Defines the bytecode format (including optimized 16-bit variable IDs and specialized zero/one opcodes), and the `Chunk` container for RLE-optimized source mapping. |
+| **VM**           | `vm.cpp` `vm.h`         | High-speed stack interpreter using direct-threading dispatch (GCC/Clang), pre-allocated variable limits, portable arithmetic, and overflow traps. |
 | **Disassembler** | `disasm.cpp` `disasm.h` | Pretty-prints bytecode with opcodes, operands, and absolute jump targets.                           |
 
 ---

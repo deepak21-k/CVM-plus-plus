@@ -13,6 +13,30 @@
 #include "error.h"
 #include <optional>
 
+static bool isPure(Expression* expr) {
+    if (!expr) return true;
+    switch (expr->nodeType) {
+        case NodeType::AssignExpr:
+        case NodeType::UpdateExpr:
+        case NodeType::InputExpr:
+            return false;
+        case NodeType::BinaryExpr: {
+            auto* b = static_cast<BinaryExpr*>(expr);
+            return isPure(b->left.get()) && isPure(b->right.get());
+        }
+        case NodeType::UnaryExpr: {
+            auto* u = static_cast<UnaryExpr*>(expr);
+            return isPure(u->right.get());
+        }
+        case NodeType::LogicalExpr: {
+            auto* l = static_cast<LogicalExpr*>(expr);
+            return isPure(l->left.get()) && isPure(l->right.get());
+        }
+        default:
+            return true;
+    }
+}
+
 Compiler::Compiler() {}
 
 Chunk Compiler::compile(const std::vector<std::unique_ptr<Statement>>& statements) {
@@ -176,8 +200,14 @@ void Compiler::visitBinaryExpr(BinaryExpr& expr) {
             if (auto result = tryFold()) {
                 if (*result > INT32_MAX || *result < INT32_MIN)
                     throw CompileError("Integer overflow in constant expression");
-                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-                chunk.writeInt(static_cast<int32_t>(*result), currentLine);
+                if (*result == 0) {
+                    chunk.write(static_cast<uint8_t>(Opcode::PUSH_0), currentLine);
+                } else if (*result == 1) {
+                    chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
+                } else {
+                    chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
+                    chunk.writeInt(static_cast<int32_t>(*result), currentLine);
+                }
                 return;
             }
         }
@@ -233,8 +263,11 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
             } else {
                 result = (lv || rv) ? 1 : 0;
             }
-            chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-            chunk.writeInt(result, currentLine);
+            if (result == 0) {
+                chunk.write(static_cast<uint8_t>(Opcode::PUSH_0), currentLine);
+            } else {
+                chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
+            }
             return;
         }
     }
@@ -249,15 +282,13 @@ void Compiler::visitLogicalExpr(LogicalExpr& expr) {
         int skipJump = emitJmp(Opcode::JMP);
         
         patchJmp(endJump);
-        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-        chunk.writeInt(0, currentLine);
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_0), currentLine);
         
         patchJmp(skipJump);
     } else if (expr.op.type == TokenType::OR_OR) {
         int elseJump = emitJmp(Opcode::JMP_IF_FALSE);
         
-        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-        chunk.writeInt(1, currentLine); // pushes true 
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
         int endJump = emitJmp(Opcode::JMP);
         
         patchJmp(elseJump);
@@ -287,26 +318,38 @@ void Compiler::visitUnaryExpr(UnaryExpr& expr) {
                 long long result = -val;
                 if (result > INT32_MAX || result < INT32_MIN)
                     throw CompileError("Integer overflow in constant negation");
-                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-                chunk.writeInt(static_cast<int32_t>(result), currentLine);
+                if (result == 0) chunk.write(static_cast<uint8_t>(Opcode::PUSH_0), currentLine);
+                else if (result == 1) chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
+                else {
+                    chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
+                    chunk.writeInt(static_cast<int32_t>(result), currentLine);
+                }
                 return true;
             } else if (expr.op.type == TokenType::BIT_NOT) {
                 if (val > INT32_MAX || val < INT32_MIN)
                     throw CompileError("Integer literal out of range");
-                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-                chunk.writeInt(~static_cast<int32_t>(val), currentLine);
+                int32_t result = ~static_cast<int32_t>(val);
+                if (result == 0) chunk.write(static_cast<uint8_t>(Opcode::PUSH_0), currentLine);
+                else if (result == 1) chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
+                else {
+                    chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
+                    chunk.writeInt(result, currentLine);
+                }
                 return true;
             } else if (expr.op.type == TokenType::NOT) {
                 if (val > INT32_MAX || val < INT32_MIN)
                     throw CompileError("Integer literal out of range");
-                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-                chunk.writeInt(val == 0 ? 1 : 0, currentLine);
+                chunk.write(static_cast<uint8_t>(val == 0 ? Opcode::PUSH_1 : Opcode::PUSH_0), currentLine);
                 return true;
             } else if (expr.op.type == TokenType::PLUS) {
                 if (val > INT32_MAX || val < INT32_MIN)
                     throw CompileError("Integer literal out of range");
-                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-                chunk.writeInt(static_cast<int32_t>(val), currentLine);
+                if (val == 0) chunk.write(static_cast<uint8_t>(Opcode::PUSH_0), currentLine);
+                else if (val == 1) chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
+                else {
+                    chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
+                    chunk.writeInt(static_cast<int32_t>(val), currentLine);
+                }
                 return true;
             }
         }
@@ -314,8 +357,7 @@ void Compiler::visitUnaryExpr(UnaryExpr& expr) {
         if (lit->value.type == TokenType::TRUE_LIT || lit->value.type == TokenType::FALSE_LIT) {
             int32_t boolVal = (lit->value.type == TokenType::TRUE_LIT) ? 1 : 0;
             if (expr.op.type == TokenType::NOT) {
-                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-                chunk.writeInt(boolVal == 0 ? 1 : 0, currentLine);
+                chunk.write(static_cast<uint8_t>(boolVal == 0 ? Opcode::PUSH_1 : Opcode::PUSH_0), currentLine);
                 return true;
             }
         }
@@ -343,24 +385,26 @@ void Compiler::visitLiteralExpr(LiteralExpr& expr) {
     currentLine = expr.line;
 
     if (expr.value.type == TokenType::NUMBER) {
-        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
         try {
             long long val = std::stoll(expr.value.value);
             if (val > INT32_MAX || val < INT32_MIN) {
                 throw CompileError("Integer literal out of range: " + expr.value.value);
             }
-            chunk.writeInt(static_cast<int32_t>(val), currentLine);
+            if (val == 0) chunk.write(static_cast<uint8_t>(Opcode::PUSH_0), currentLine);
+            else if (val == 1) chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
+            else {
+                chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
+                chunk.writeInt(static_cast<int32_t>(val), currentLine);
+            }
         } catch (const std::out_of_range&) {
             throw CompileError("Integer literal out of range: " + expr.value.value);
         } catch (const std::invalid_argument&) {
             throw CompileError("Invalid integer literal: " + expr.value.value);
         }
     } else if (expr.value.type == TokenType::TRUE_LIT) {
-        chunk.write(static_cast<uint8_t>(Opcode::PUSH_BOOL), currentLine);
-        chunk.writeByte(1, currentLine);
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
     } else if (expr.value.type == TokenType::FALSE_LIT) {
-        chunk.write(static_cast<uint8_t>(Opcode::PUSH_BOOL), currentLine);
-        chunk.writeByte(0, currentLine);
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_0), currentLine);
     } else {
         throw CompileError("Unknown literal type");
     }
@@ -371,7 +415,7 @@ void Compiler::visitVariableExpr(VariableExpr& expr) {
 
     int32_t id = resolveVariable(expr.name.value, false);
     chunk.write(static_cast<uint8_t>(Opcode::GET_VAR), currentLine);
-    chunk.writeInt(id, currentLine);
+    chunk.writeShort(static_cast<uint16_t>(id), currentLine);
 }
 
 void Compiler::visitInputExpr(InputExpr&) {
@@ -384,7 +428,7 @@ void Compiler::visitAssignExpr(AssignExpr& expr) {
     expr.value->accept(*this);
     int32_t id = resolveVariable(expr.name.value, false);
     chunk.write(static_cast<uint8_t>(Opcode::SET_VAR_PUSH), currentLine);
-    chunk.writeInt(id, currentLine);
+    chunk.writeShort(static_cast<uint16_t>(id), currentLine);
 }
 
 void Compiler::visitUpdateExpr(UpdateExpr& expr) {
@@ -394,23 +438,21 @@ void Compiler::visitUpdateExpr(UpdateExpr& expr) {
     if (expr.isPrefix) {
         // Prefix (++x / --x): update variable, leave NEW value on stack.
         chunk.write(static_cast<uint8_t>(Opcode::GET_VAR), currentLine);
-        chunk.writeInt(id, currentLine);
-        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-        chunk.writeInt(1, currentLine);
+        chunk.writeShort(static_cast<uint16_t>(id), currentLine);
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
         chunk.write(static_cast<uint8_t>(expr.isIncrement ? Opcode::ADD : Opcode::SUB), currentLine);
         chunk.write(static_cast<uint8_t>(Opcode::SET_VAR_PUSH), currentLine);
-        chunk.writeInt(id, currentLine);
+        chunk.writeShort(static_cast<uint16_t>(id), currentLine);
     } else {
         // Postfix (x++ / x--): leave OLD value on stack, then update variable.
         chunk.write(static_cast<uint8_t>(Opcode::GET_VAR), currentLine);
-        chunk.writeInt(id, currentLine); // old value (result)
+        chunk.writeShort(static_cast<uint16_t>(id), currentLine); // old value (result)
         chunk.write(static_cast<uint8_t>(Opcode::GET_VAR), currentLine);
-        chunk.writeInt(id, currentLine); // old value (for computation)
-        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-        chunk.writeInt(1, currentLine);
+        chunk.writeShort(static_cast<uint16_t>(id), currentLine); // old value (for computation)
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_1), currentLine);
         chunk.write(static_cast<uint8_t>(expr.isIncrement ? Opcode::ADD : Opcode::SUB), currentLine);
         chunk.write(static_cast<uint8_t>(Opcode::SET_VAR), currentLine);
-        chunk.writeInt(id, currentLine);
+        chunk.writeShort(static_cast<uint16_t>(id), currentLine);
     }
 }
 
@@ -427,9 +469,7 @@ void Compiler::visitBlockStmt(BlockStmt& stmt) {
 void Compiler::visitExpressionStmt(ExpressionStmt& stmt) {
     currentLine = stmt.line;
 
-    // O3 simplified: skip compilation for literal-only expression statements
-    // (no side effects, result is immediately discarded)
-    if (stmt.expr->nodeType == NodeType::LiteralExpr) return;
+    if (isPure(stmt.expr.get())) return;
     stmt.expr->accept(*this);
     chunk.write(static_cast<uint8_t>(Opcode::POP), currentLine); 
 }
@@ -440,16 +480,35 @@ void Compiler::visitLetStmt(LetStmt& stmt) {
     if (stmt.initializer) {
         stmt.initializer->accept(*this);
     } else {
-        chunk.write(static_cast<uint8_t>(Opcode::PUSH_INT), currentLine);
-        chunk.writeInt(0, currentLine);
+        chunk.write(static_cast<uint8_t>(Opcode::PUSH_0), currentLine);
     }
     int32_t id = resolveVariable(stmt.name.value, true);
     chunk.write(static_cast<uint8_t>(Opcode::SET_VAR), currentLine);
-    chunk.writeInt(id, currentLine);
+    chunk.writeShort(static_cast<uint16_t>(id), currentLine);
 }
 
 void Compiler::visitIfStmt(IfStmt& stmt) {
     currentLine = stmt.line;
+
+    bool isStaticTrue = false;
+    bool isStaticFalse = false;
+    if (stmt.condition->nodeType == NodeType::LiteralExpr) {
+        auto* lit = static_cast<LiteralExpr*>(stmt.condition.get());
+        if (lit->value.type == TokenType::TRUE_LIT) isStaticTrue = true;
+        else if (lit->value.type == TokenType::FALSE_LIT) isStaticFalse = true;
+        else if (lit->value.type == TokenType::NUMBER) {
+            try { if (std::stoll(lit->value.value) == 0) isStaticFalse = true; else isStaticTrue = true; } catch(...) {}
+        }
+    }
+
+    if (isStaticTrue) {
+        stmt.thenBranch->accept(*this);
+        return;
+    }
+    if (isStaticFalse) {
+        if (stmt.elseBranch) stmt.elseBranch->accept(*this);
+        return;
+    }
 
     stmt.condition->accept(*this);
     int thenJmp = emitJmp(Opcode::JMP_IF_FALSE);
@@ -468,6 +527,17 @@ void Compiler::visitIfStmt(IfStmt& stmt) {
 
 void Compiler::visitWhileStmt(WhileStmt& stmt) {
     currentLine = stmt.line;
+
+    bool isStaticFalse = false;
+    if (stmt.condition->nodeType == NodeType::LiteralExpr) {
+        auto* lit = static_cast<LiteralExpr*>(stmt.condition.get());
+        if (lit->value.type == TokenType::FALSE_LIT) isStaticFalse = true;
+        else if (lit->value.type == TokenType::NUMBER) {
+            try { if (std::stoll(lit->value.value) == 0) isStaticFalse = true; } catch(...) {}
+        }
+    }
+
+    if (isStaticFalse) return;
 
     LoopContext ctx;
     ctx.loopStart = static_cast<int>(chunk.code.size());

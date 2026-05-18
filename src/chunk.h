@@ -53,6 +53,16 @@ struct Chunk {
         }
     }
 
+    inline void writeShort(uint16_t value, int line) {
+        size_t startOffset = code.size();
+        code.push_back((value >> 8) & 0xFF);
+        code.push_back(value & 0xFF);
+        
+        if (lines.empty() || lines.back().line != line) {
+            lines.push_back({startOffset, line});
+        }
+    }
+
     [[nodiscard]] int getLine(size_t offset) const {
         if (lines.empty()) return -1;
 
@@ -76,6 +86,16 @@ struct Chunk {
                (static_cast<uint32_t>(code[offset + 1]) << 16) |
                (static_cast<uint32_t>(code[offset + 2]) << 8) |
                (static_cast<uint32_t>(code[offset + 3]))
+        );
+    }
+
+    [[nodiscard]] uint16_t readShort(size_t offset) const {
+        if (code.size() < 2 || offset > code.size() - 2) {
+            throw RuntimeError("Bytecode truncated: attempted read past end");
+        }
+        return static_cast<uint16_t>(
+               (static_cast<uint16_t>(code[offset]) << 8) |
+               (static_cast<uint16_t>(code[offset + 1]))
         );
     }
 };

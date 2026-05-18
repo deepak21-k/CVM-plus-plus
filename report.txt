@@ -20,9 +20,9 @@ The CVM++ architecture is divided into five distinct stages, forming a complete 
 
 a) Lexer: Tokenizes the raw source code. It handles comments, numeric bases, and keyword matching.
 b) Parser: A recursive-descent parser that consumes tokens and constructs an Abstract Syntax Tree (AST). It uses a lightweight `NodeType` enum instead of RTTI (`dynamic_cast`), ensuring zero-overhead type identification.
-c) Compiler: A single-pass AST visitor that directly emits bytecode. It performs compile-time constant folding on binary, unary, and logical expressions to eliminate runtime overhead.
-d) Bytecode Format: Instructions are tightly packed into a `Chunk`. A crucial optimization is the use of Run-Length Encoding (RLE) to map bytecode offsets back to source line numbers, drastically reducing the memory footprint.
-e) Virtual Machine: A stack-based execution engine that runs the compiled bytecode. It enforces strict boundary checks to prevent stack overflow/underflow and uses explicit sign-bit replication for safe arithmetic right shifts on negative integers.
+c) Compiler: A single-pass AST visitor that directly emits bytecode. It performs compile-time constant folding, pure-expression pruning, and aggressive dead-code elimination (DCE) on literal branch conditions to eliminate runtime overhead.
+d) Bytecode Format: Instructions are tightly packed into a `Chunk`. Variable IDs are compressed into 16-bit operands and dedicated opcodes (`PUSH_0`/`PUSH_1`) maximize density. Run-Length Encoding (RLE) is utilized to map bytecode offsets back to source line numbers, drastically reducing the memory footprint.
+e) Virtual Machine: A stack-based execution engine that runs the compiled bytecode. It leverages direct threading (computed gotos) on GCC/Clang for ultra-fast opcode dispatch. It enforces strict boundary checks with pre-allocated variable limits to prevent stack overflow/underflow and uses explicit sign-bit replication for safe arithmetic right shifts on negative integers.
 
 4. Developer Tools
 ------------------

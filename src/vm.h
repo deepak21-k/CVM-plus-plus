@@ -21,7 +21,7 @@ public:
 
     VM();
     void execute(const Chunk& chunk);
-    void reset() { sp = 0; variables.clear(); }
+    void reset() { sp = 0; std::fill(variables.begin(), variables.end(), 0); }
 
     // For testing/debugging, we can inspect stack or variables
     [[nodiscard]] int32_t peekStack() const;

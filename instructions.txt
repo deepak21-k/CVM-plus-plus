@@ -24,9 +24,7 @@ To run a CVM++ program (like the provided sample files), pass the file path to t
     ./build/cvm truth_machine.cvm
     ./build/cvm calculator.cvm
 
-4. Compiling to Bytecode (Inspection)
--------------------------------------
-You can view the compiled bytecode of a program without running it by using the `--dump` flag:
+You can view the compiled bytecode of a program without running it by using the `--dump` flag. This is useful for analyzing bytecode density, constant folding, and dead-code elimination (DCE) behavior:
 
     ./build/cvm --dump calculator.cvm
 

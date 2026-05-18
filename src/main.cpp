@@ -18,6 +18,15 @@
 
 static constexpr const char* CVM_VERSION = "1.1.0";
 
+/// Prints the CVM++ welcome banner shown at REPL startup.
+void printBanner() {
+    std::cout << "\n"
+              << "  CVM++ v" << CVM_VERSION << " - Stack-based VM & Compiler\n"
+              << "  ===========================================\n"
+              << "  > Type 'exit' to quit.\n"
+              << "  > Type 'disasm on' to view bytecode.\n\n";
+}
+
 struct RunOptions {
     bool dumpBytecode = false;  // REPL: Show disassembly alongside execution.
     bool dumpOnly = false;      // CLI: disassemble without executing.
@@ -56,23 +65,23 @@ void run(const std::string& source, Compiler& compiler, VM& vm, const RunOptions
 }
 
 void repl() {
-    std::cout << "CVM++ REPL v" << CVM_VERSION << "\nType 'exit' or 'quit' to close.\n";
+    printBanner();
     VM vm;
     Compiler compiler;
     RunOptions opts;
     std::string line;
     while (true) {
-        std::cout << "> ";
+        std::cout << "cvm> ";
         if (!std::getline(std::cin, line)) break;
         if (line == "exit" || line == "quit") break;
         if (line == "disasm on") {
             opts.dumpBytecode = true;
-            std::cout << "Bytecode disassembly enabled.\n";
+            std::cout << "  [*] Bytecode disassembly enabled.\n";
             continue;
         }
         if (line == "disasm off") {
             opts.dumpBytecode = false;
-            std::cout << "Bytecode disassembly disabled.\n";
+            std::cout << "  [*] Bytecode disassembly disabled.\n";
             continue;
         }
         if (line.empty()) continue;
@@ -95,15 +104,27 @@ void runFile(const std::string& path, const RunOptions& opts) {
 }
 
 void printUsage() {
-    std::cout << "Usage: cvm [options] [script.cvm]\n"
-              << "\nOptions:\n"
-              << "  --dump       Disassemble bytecode without executing\n"
-              << "  --help       Show this help message\n"
-              << "  --version    Show version information\n"
-              << "\nExamples:\n"
-              << "  cvm                    Start the REPL\n"
-              << "  cvm script.cvm         Run a script file\n"
-              << "  cvm --dump script.cvm  Disassemble a script\n";
+    std::cout << "\n"
+              << "  CVM++ v" << CVM_VERSION << "  --  Stack-based Virtual Machine & Compiler\n"
+              << "  =============================================================\n"
+              << "\n"
+              << "  USAGE:    cvm [options] [script.cvm]\n"
+              << "\n"
+              << "  OPTIONS:\n"
+              << "    --dump ........... Disassemble bytecode without executing\n"
+              << "    --help, -h ....... Show this help message\n"
+              << "    --version, -v .... Show version information\n"
+              << "\n"
+              << "  EXAMPLES:\n"
+              << "    cvm                    Start the interactive REPL\n"
+              << "    cvm script.cvm         Run a script file\n"
+              << "    cvm --dump script.cvm  Disassemble a script\n"
+              << "\n"
+              << "  FEATURES:\n"
+              << "    Integer arithmetic  |  Bitwise ops      |  Block scoping\n"
+              << "    if/else/while/for   |  break/continue   |  input/print\n"
+              << "    Constant folding    |  Dead-code elim.  |  Direct threading\n"
+              << "\n";
 }
 
 int main(int argc, char* argv[]) {
@@ -120,7 +141,7 @@ int main(int argc, char* argv[]) {
                 printUsage();
                 return 0;
             } else if (arg == "--version" || arg == "-v") {
-                std::cout << "CVM++ v" << CVM_VERSION << '\n';
+                std::cout << "CVM++ v" << CVM_VERSION << "\n";
                 return 0;
             } else {
                 path = arg;

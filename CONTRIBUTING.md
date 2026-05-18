@@ -22,7 +22,7 @@ Thank you for your interest in CVM++! We welcome contributions ranging from bug 
 ## Architectural Guidelines
 
 - **Zero RTTI**: We avoid `dynamic_cast`. If you add a new AST node, define it in the `NodeType` enum.
-- **VM Performance**: The virtual machine uses a dense `std::vector<uint8_t>` for bytecode. Avoid introducing dynamic memory allocations inside the main VM execution loop (`VM::execute`).
+- **VM Performance**: The virtual machine uses direct threading (computed gotos) on GCC/Clang and pre-allocates the variables vector to `MAX_VARIABLES` to strip dynamic bounds-checking from the hot path. Avoid introducing dynamic memory allocations or costly branches inside the main VM execution loop (`VM::execute`).
 - **Error Handling**: Throw specific exceptions (`LexError`, `ParseError`, `CompileError`, `RuntimeError`) carrying line and column context rather than generic runtime exceptions.
 
 ## Pull Request Process

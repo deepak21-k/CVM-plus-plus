@@ -18,6 +18,8 @@
 enum class Opcode : uint8_t {
     PUSH_INT,
     PUSH_BOOL,
+    PUSH_0,
+    PUSH_1,
     ADD, SUB, MUL, DIV, MOD,
     EQ, NEQ, LT, GT, LTE, GTE,
     BIT_XOR, BIT_AND, BIT_OR, SHL, SHR, BIT_NOT,
