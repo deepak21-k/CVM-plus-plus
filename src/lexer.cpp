@@ -159,8 +159,8 @@ std::vector<Token> Lexer::tokenize() {
                     }
                     continue;
                 }
-                // Reject leading-zero decimals (e.g., 0123) to avoid C/Java confusion.
-                // Use 0o for octal. At this point peek() is still on '0', peekNext() is the next char.
+                // Block leading-zero decimals (e.g., 0123) to avoid C/Java ambiguity; require '0o' for octals.
+               // State note: peek() is still on '0', and peekNext() is the character immediately after.
                 char nextCh = peekNext();
                 if (nextCh >= '1' && nextCh <= '9') {
                     throw LexError("Leading zeros not allowed in decimal literals (use 0o for octal)", line, column);
