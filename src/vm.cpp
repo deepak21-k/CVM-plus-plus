@@ -1,3 +1,14 @@
+/**
+ * @file vm.cpp
+ * @brief Stack-based virtual machine bytecode interpreter implementation.
+ *
+ * Executes compiled bytecode from a Chunk using a fetch-decode-execute loop.
+ * Implements all 27 opcodes with overflow detection (int64_t intermediates),
+ * portable arithmetic right shifts, and stack pointer save/restore for REPL
+ * error recovery. Reports runtime errors with source-line mapping via the
+ * Chunk's RLE-compressed line table.
+ */
+
 #include "vm.h"
 #include "error.h"
 #include <iostream>
