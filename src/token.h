@@ -1,3 +1,12 @@
+/**
+ * @file token.h
+ * @brief Token type definitions and Token structure for the CVM++ lexer.
+ *
+ * Defines the complete set of token types recognized by the lexer, including
+ * keywords, operators, symbols, literals, and identifiers. Each token carries
+ * its type, string value, and source location (line, column) for accurate
+ * error reporting and debugging throughout the compilation pipeline.
+ */
 #pragma once
 #include <string>
 #include <cstdint>
