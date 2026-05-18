@@ -1,3 +1,15 @@
+/**
+ * @file ast.h
+ * @brief Abstract Syntax Tree node definitions and Visitor pattern interface.
+ *
+ * Defines the complete AST node hierarchy using a compile-time NodeType enum
+ * instead of RTTI (dynamic_cast) for efficient type dispatch. Covers all
+ * expression types (binary, unary, logical, literal, variable, input, assign,
+ * update) and statement types (block, expression, let, if, while, for, break,
+ * continue, print). Implements the Visitor pattern for clean separation between
+ * the AST structure and compilation logic.
+ */
+
 #pragma once
 #include "token.h"
 #include <memory>
