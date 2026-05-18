@@ -1,13 +1,13 @@
-// B3: Unary plus operator
+// B3: Test unary plus operator on numeric literals and variables
 let x = +5;
 print x;
-// Expected: 5
+// Should print: 5
 
 let y = +0;
 print y;
-// Expected: 0
+// Should print: 0
 
 let z = 10;
 let w = +z;
 print w;
-// Expected: 10
+// Should print: 10
