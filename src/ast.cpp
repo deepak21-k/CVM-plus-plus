@@ -1,3 +1,12 @@
+/**
+ * @file ast.cpp
+ * @brief AST visitor accept() dispatch implementations.
+ *
+ * Each accept() method delegates to the corresponding visit method on the
+ * provided ASTVisitor, enabling double-dispatch without RTTI. This separates
+ * the traversal logic from the node definitions while maintaining type safety.
+ */
+
 #include "ast.h"
 
 
