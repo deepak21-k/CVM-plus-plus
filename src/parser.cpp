@@ -54,6 +54,7 @@ const Token& Parser::consume(TokenType type, const std::string& message) {
 }
 
 void Parser::synchronize() {
+    // Skip tokens until we find a statement boundary, so parsing can resume after an error
     advance();
     while (!isAtEnd()) {
         if (previous().type == TokenType::SEMICOLON) return;
@@ -78,7 +79,6 @@ std::unique_ptr<Statement> Parser::declaration() {
         if (match({TokenType::LET})) return letDeclaration();
         return statement();
     } catch (const ParseError& error) {
-        // Simple error reporting and recovery
         std::cerr << error.what() << '\n';
         synchronize();
         return nullptr;
@@ -136,8 +136,8 @@ std::unique_ptr<Statement> Parser::forStatement() {
     int line = previous().line;
     consume(TokenType::LPAREN, "Expect '(' after 'for'.");
 
-    // for ( <initializer> ; <condition> ; <increment> ) <body>
-    // initializer can be either `let ...;` or any expression statement ending with `;`.
+    // for ( <init> ; <condition> ; <increment> ) <body>
+    // init can be omitted, a let declaration, or an expression statement
     std::unique_ptr<Statement> initializer;
     if (match({TokenType::SEMICOLON})) {
         initializer = nullptr;
@@ -197,7 +197,7 @@ std::unique_ptr<Statement> Parser::blockStatement() {
 
 std::unique_ptr<Statement> Parser::expressionStatement() {
     std::unique_ptr<Expression> expr = expression();
-    int line = previous().line; // Line of the last token in expression
+    int line = previous().line;
     consume(TokenType::SEMICOLON, "Expect ';' after expression.");
     return std::make_unique<ExpressionStmt>(std::move(expr), line);
 }
@@ -210,7 +210,7 @@ std::unique_ptr<Expression> Parser::assignment() {
     std::unique_ptr<Expression> expr = logicalOr();
 
     if (match({TokenType::EQUAL})) {
-        std::unique_ptr<Expression> value = assignment();
+        std::unique_ptr<Expression> value = assignment(); // right-associative
 
         if (expr->nodeType == NodeType::VariableExpr) {
             auto* varExpr = static_cast<VariableExpr*>(expr.get());
@@ -224,6 +224,11 @@ std::unique_ptr<Expression> Parser::assignment() {
 
     return expr;
 }
+
+// The expression parsing functions below follow a standard recursive descent
+// precedence chain, each calling the next-higher-precedence level:
+// logicalOr → logicalAnd → bitwiseOr → bitwiseXor → bitwiseAnd →
+// equality → comparison → shift → term → factor → unary → postfix → primary
 
 std::unique_ptr<Expression> Parser::logicalOr() {
     std::unique_ptr<Expression> expr = logicalAnd();
