@@ -1,3 +1,14 @@
+/**
+ * @file vm.h
+ * @brief Stack-based virtual machine execution engine for CVM++ bytecode.
+ *
+ * The VM interprets bytecode produced by the Compiler using a fixed-size
+ * operand stack (2048 slots) with overflow/underflow protection. Implements
+ * portable arithmetic right shifts, integer overflow detection using int64_t
+ * intermediates, and source-line mapping via the Chunk's RLE table for
+ * accurate runtime error reporting. Supports error recovery for REPL usage.
+ */
+
 #pragma once
 #include "opcode.h"
 #include "chunk.h"
