@@ -1,3 +1,13 @@
+/**
+ * @file compiler.cpp
+ * @brief Single-pass AST-to-bytecode compiler implementation.
+ *
+ * Walks the AST via the Visitor pattern and emits dense bytecode into a Chunk.
+ * Implements compile-time constant folding, short-circuit logical evaluation,
+ * block-scoped variable management with slot reuse, and forward/backward jump
+ * patching for control flow structures including for-loops with break/continue.
+ */
+
 #include "compiler.h"
 #include "vm.h"
 #include "error.h"
